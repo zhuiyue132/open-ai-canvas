@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/ddcat-ai/open-ai-canvas">GitHub</a> ·
   <a href="docs/content/docs/overview/features.mdx">功能</a> ·
-  <a href="docs/content/docs/overview/quick-start.mdx">文档</a> ·
+  <a href="docs/index.md">文档</a> ·
   <a href="SECURITY.md">安全策略</a>
 </p>
 
@@ -187,7 +187,7 @@ curl -fsSL https://raw.githubusercontent.com/ddcat-ai/open-ai-canvas/main/script
 
 脚本使用 PostgreSQL、Redis、独立 Agent 和源码构建叠加层，但不安装 Host Updater；该部署不属于后台在线更新管理范围，需自行构建、备份和升级。根目录的 `docker-compose.yml`、`docker-compose.local.yml` 和自行编写的两容器 SQLite 编排用于本地试运行，不作为默认服务器部署方案。
 
-已有 SQLite 或自定义 Compose 部署，不能只替换 Compose 文件或补装更新器就获得在线更新；应先核对原数据卷、完成备份和数据迁移。方案选择见 [Docker 部署](docs/content/docs/overview/docker.mdx)，更新约束、备份和回退见[系统更新文档](docs/content/docs/backend/system-update.mdx)。
+已有 SQLite 或自定义 Compose 部署，不能只替换 Compose 文件或补装更新器就获得在线更新；应先核对原数据卷、完成备份和数据迁移。方案选择见上文「官方 Release 镜像」与「源码构建与已有部署」，更新约束、备份和回退见[系统更新文档](docs/content/docs/backend/system-update.mdx)。
 
 ## 安全边界
 
@@ -204,15 +204,17 @@ curl -fsSL https://raw.githubusercontent.com/ddcat-ai/open-ai-canvas/main/script
 
 ### 文档导航
 
-- [快速开始](docs/content/docs/overview/quick-start.mdx)
 - [功能清单](docs/content/docs/overview/features.mdx)
 - [代码功能地图](docs/content/docs/backend/code-map.mdx)
 - [本地开发](docs/content/docs/backend/local-development.mdx)
+- [HTTP API 合同](docs/content/docs/backend/http-api.mdx)
 - [数据库结构](docs/content/docs/backend/backend-database.mdx)
-- [画布操作手册](docs/content/docs/canvas/canvas-node-manual.mdx)
 - [插件系统](docs/content/docs/plugins/plugin-system.mdx)
-- [待办与待测试](docs/content/docs/progress/todo.mdx) · [待测试清单](docs/content/docs/progress/pending-test.mdx)
+- [在线更新与安全回退](docs/content/docs/backend/system-update.mdx)
+- [待测试清单](docs/content/docs/progress/pending-test.mdx)
 - [更新日志](CHANGELOG.md) · [贡献指南](CONTRIBUTING.md)
+
+决策与设计理由不在本列表里：它们按 `.agents/notes/{lifecycle}/{class}/yyyy-mm-dd-topic.md` 归类，约定见 [AGENTS.md](AGENTS.md) 第 9 节，检索用 `rg`，不建集中索引。
 
 ### 验证命令
 
@@ -225,8 +227,10 @@ cd web && bun run lint && bun run build
 # 后端
 cd backend && go test ./...
 
-# 文档站
-cd docs && bun run types:check
+# 决策笔记（从仓库根目录运行）
+bun run .agents/skills/write-notes-like-deepseek/scripts/verify-agent-note-tree.ts
+bun run .agents/skills/write-notes-like-deepseek/scripts/verify-agent-note-format.ts
+bun run .agents/skills/write-notes-like-deepseek/scripts/verify-archived-agent-notes.ts
 ```
 
 ## 许可证

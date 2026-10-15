@@ -12,9 +12,9 @@
 | --- | --- | --- | --- |
 | `web/` | Vite、React 19、TypeScript、React Router、Ant Design、Tailwind、Zustand、TanStack Query | `web/src/application.tsx`、`web/src/router.tsx` | 工作区 UI、画布交互、浏览器缓存、API 调用和模型协议适配 |
 | `backend/` | Go 1.25、Gin、GORM、SQLite/PostgreSQL、Redis 协调 | `backend/cmd/server/main.go` | 登录、权限、业务 API、任务队列、资源、模型中转和后台管理 |
-| `docs/` | Next.js、Fumadocs、MDX | `docs/content/docs/` | 面向用户和开发者的专题文档；构建配置见 `docs/source.config.ts` |
+| `docs/` | Markdown、MDX | `docs/content/docs/` | 参考类专题文档（功能、代码地图、API、数据库、部署、插件）；决策记录在 `.agents/notes/`；本仓库不含文档站构建配置 |
 
-根目录的 `Dockerfile` 构建前端静态镜像；`nginx.conf` 托管 SPA 并代理后端。`docker-compose.dev.yml` 是源码热更新开发编排，根 `docker-compose.yml` 和 `docker-compose.local.yml` 是本地构建运行。服务器默认使用官方 Release 镜像、`docker-compose.deploy.yml`（PostgreSQL、Redis、独立 Agent、迁移服务）和宿主机 Host Updater，详细说明见 [Docker 部署](docs/content/docs/overview/docker.mdx)。
+根目录的 `Dockerfile` 构建前端静态镜像；`nginx.conf` 托管 SPA 并代理后端。`docker-compose.dev.yml` 是源码热更新开发编排，根 `docker-compose.yml` 和 `docker-compose.local.yml` 是本地构建运行。服务器默认使用官方 Release 镜像、`docker-compose.deploy.yml`（PostgreSQL、Redis、独立 Agent、迁移服务）和宿主机 Host Updater，详细说明见根 `README.md` 的「服务器部署」段与 `docs/content/docs/backend/system-update.mdx`。
 
 ## 2. 开始工作前
 
@@ -78,7 +78,7 @@ cd web && bun run dev
 
 ### Agent、插件和文档
 
-- 修改 `docs/` 前确认内容属于专题文档，而不是把长篇说明重新复制到根 README。目录索引见 `docs/index.md`。
+- 修改 `docs/` 前确认内容属于参考类专题文档（功能、代码地图、API、数据库、部署、插件接口），而不是把长篇说明重新复制到根 README；决策与取舍写 `.agents/notes/`。参考文档入口见 `docs/index.md`，决策检索用 `rg` 扫 `.agents/notes/`。
 
 ## 4. 前端 API 和状态合同
 
@@ -129,7 +129,7 @@ cd web && bun run dev
 - 节点和对象名称要有可发现的铅笔入口并支持单击编辑；双击或右键不能是唯一入口。图片节点保持原始比例，面板不能长期遮挡主要画布空间。
 - Ant Design 共性主题和控件状态集中在 `web/src/lib/app-theme.ts` / `AppProviders`。自带外壳的产品弹窗用 `AppModal flush`，侧栏用 `AppDrawer`；不要再复制 `padding: 0` 的 Modal styles。内容外壳仍是 `.ant-modal-container`。
 - 第三方覆盖限定在具体组件，不新增全局 `.ant-modal-*`、`.dark .ant-switch-*`、`.ant-checkbox-*` 或 Segmented 状态补丁。新增 CSS 前先搜索同名选择器，回到唯一源规则修改。
-- 遵循 `docs/ui-design-system.md` 及项目三层 token：Primitive → Semantic → Component。inline style 优先引用 `var(--token-name)`，不要散落颜色、圆角、阴影和层级字面值。
+- 遵循 `docs/plans/ui-design-system.mdx` 及项目三层 token：Primitive → Semantic → Component。inline style 优先引用 `var(--token-name)`，不要散落颜色、圆角、阴影和层级字面值。
 - 主操作、普通选中、Checkbox/Radio、Switch 是不同颜色角色；持久切换使用 `aria-pressed`，`type="primary"` 只表示当前主要命令。尊重 `prefers-reduced-motion`，键盘导航保留 `:focus-visible`。
 - 修改既有页面时直接修改真实组件、样式和路由。不得创建独立 HTML 来代替真实页面验证；只有用户明确要求原型或隔离设计稿时才可生成，并放在临时目录或用户指定位置，不得放入 `web/public/` 或产品构建目录。
 
@@ -151,7 +151,7 @@ cd web && bun run dev
 - 前端：`cd web && bun run build`；专项测试用 `bun test ...`。UI 退场规则用 `bun run lint`（只禁 antd Empty 和静态 `Modal.confirm`，不是风格检查）。
 - 后端：`cd backend && go test ./...`；涉及 PostgreSQL、资源、任务或权限时补对应集成/冒烟路径。
 - 云端 Agent：前端事件流和审批路径依赖后端 `/api/agent` 接口；在该接口实现后补充后端冒烟、Worker 运行和 SSE 断线重连验证。
-- 文档站：`cd docs && bun run types:check` 或 `bun run build`。
+- 决策笔记：从仓库根目录运行 `bun run .agents/skills/write-notes-like-deepseek/scripts/verify-agent-note-tree.ts`，并连同同目录 `verify-agent-note-format.ts`、`verify-archived-agent-notes.ts` 三线通过（见 §9）。`docs/` 只有 MDX 内容与配图，含文档站构建配置的仓库不在此处，没有可执行的文档站构建命令。
 - UI 变更能浏览器验证时，检查关键路由、明暗主题、滚动、弹窗、空态和核心交互；不能验证时说明替代依据，不把静态阅读或 `git diff` 写成运行验证。
 - 验证必须针对真实实现：优先专项测试、类型检查、项目 build 或真实路由浏览器验收。独立 HTML、静态仿制页面和脱离应用状态的截图不能作为真实页面通过的证据。
 
@@ -159,9 +159,14 @@ cd web && bun run dev
 
 ## 9. 文档与交付
 
-- 根 `README.md` 只保留项目定位、能力概览、快速开始、部署、安全和文档入口；详细专题写入 `docs/content/docs/`。
-- 功能、代码地图、待办、待测试分别维护在 `docs/content/docs/overview/features.mdx`、`docs/content/docs/backend/code-map.mdx`、`docs/content/docs/progress/todo.mdx`、`docs/content/docs/progress/pending-test.mdx`。已实现但未由用户确认的变化先写入 `pending-test.mdx`。
-- API、数据表、SSE、资源存储、部署或安全边界变化时同步对应专题文档；不要只改代码和根 README。
+- 决策记录的唯一真相源是 `.agents/notes/`：路径为 `{lifecycle}/{class}/yyyy-mm-dd-topic.md`，`lifecycle` 取 `proposed`、`implemented`、`rejected`、`archived`，`class` 取 `feature`、`bug-fix`、`simplification`、`architecture`、`process`、`testing`。写入门槛、目录约定与格式定义见 `.agents/skills/write-notes-like-deepseek/SKILL.md`。
+- 非平凡改动必须留一篇笔记：改行为、改架构、改跨文件契约、改流程与工具链、改测试策略、改落盘/网络/配置格式，或在技术方案之间做选择、推翻既有决定。纯排版、样式调整、依赖补丁、发版打标和单模块内看 diff 即懂的修复不写。计划与待办落 `.agents/notes/proposed/`。
+- 三线校验从仓库根目录执行：`verify-agent-note-tree.ts`、`verify-agent-note-format.ts`、`verify-archived-agent-notes.ts`，均在 `.agents/skills/write-notes-like-deepseek/scripts/` 下；CI 门见 `.github/workflows/verify-notes.yml`。
+- `.agents/notes/` 下不建集中索引（`INDEX.md` 会让树校验直接报错），检索用 `rg` 与分类树。决定翻转要新开一篇并互链，禁止把已有笔记的 `## Decision` 段改写成反面；路径、符号、默认值这类事实就地更新。
+- `docs/adr/`、`docs/design/`、`docs/plans/`、`docs/superpowers/specs/` 是上游遗产：只读、不作为真相源，改动只来自上游合并。需要其中的事实时按路径引用，不复制正文。
+- 功能、代码地图、待测试维护在 `docs/content/docs/overview/features.mdx`、`docs/content/docs/backend/code-map.mdx`、`docs/content/docs/progress/pending-test.mdx`；接口与协议参考文档为 `docs/content/docs/backend/http-api.mdx`、`docs/content/docs/backend/backend-database.mdx`、`backend/internal/protocol/docs/*.md`、`plugin-packages/*/docs/interface.md`、`backend/builtin/*/SKILL.md`。已实现但未由用户确认的变化先写入 `pending-test.mdx`。
+- API、数据表、SSE、资源存储、部署或安全边界变化时同步对应参考文档；不要只改代码和根 README。
+- 根 `README.md` 只保留项目定位、能力概览、快速开始、架构概览、部署、安全、参考文档入口和许可证；`README.md` 与 `docs/index.md` 的导航只指向参考类文档，出现失效链接时同批修复。
 - 文档默认中文，不写过期日期，不公开密码、Token、Cookie、真实账号或机器敏感路径。命令、端口、环境变量必须以当前脚本和 Compose 为准。
 - Git 提交说明使用 `<type>(<scope>): <业务模块> - <变更摘要>`，`type` 为 `feat|fix|refactor|perf|docs|test|build|ci|chore|revert`。
 
