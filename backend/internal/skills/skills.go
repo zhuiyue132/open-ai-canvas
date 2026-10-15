@@ -29,7 +29,11 @@ var skillCategoryLabels = map[string]string{
 	"ecommerce": "电商营销",
 	"creative":  "创意设计",
 	"social":    "社媒内容",
-	"others":    "其他",
+	// 上游 adc6f42e 给内置技能「豆包音频提示词」写了 tag: audio，但白名单漏登记，
+	// 导致内置技能加载失败、/api/skills/presets 返回 500（上游 CI 同一提交也是红的）。
+	// 这里先补齐，等上游的修复同步进来后按上游写法对齐。
+	"audio":  "音频",
+	"others": "其他",
 }
 
 type SkillShowcaseMedia struct {
@@ -556,6 +560,7 @@ func skillCategories() []SkillCategory {
 		{Value: "ecommerce", Label: skillCategoryLabels["ecommerce"]},
 		{Value: "creative", Label: skillCategoryLabels["creative"]},
 		{Value: "social", Label: skillCategoryLabels["social"]},
+		{Value: "audio", Label: skillCategoryLabels["audio"]},
 		{Value: "others", Label: skillCategoryLabels["others"]},
 	}
 }
