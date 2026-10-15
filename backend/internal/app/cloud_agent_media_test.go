@@ -82,6 +82,18 @@ func agentMediaRun(t *testing.T, s *Service, a cloudAgentMediaArgs, permission s
 	return run, state
 }
 
+// isolateApprovedMediaWaiters 停掉后台媒体等待者，让用例的显式推进成为唯一写者。
+//
+// 审批会立即返回，并在后台等任务终态后恢复运行（cloud_agent_runtime_media.go 的
+// finishApprovedCloudAgentMedia）；用例随后手动推进同一条 run 时，两个写者会用各自读到的
+// revision 做条件更新，输的一方拿到 ErrCreationConflict——生产调度器把这种冲突当正常竞态
+// 继续（cloud_agent_runtime_scheduler.go 的 noteCloudAgentSchedulerConflict），但用例里它会
+// 变成随机失败。后台等待者自身的行为由 cloud_agent_approved_media_cancel_test.go 等异步用例覆盖。
+func isolateApprovedMediaWaiters(t *testing.T, s *Service) {
+	t.Helper()
+	s.closeApprovedCloudAgentMediaWaiters()
+}
+
 func approveAgentMediaDraft(t *testing.T, s *Service, runID string) {
 	t.Helper()
 	run, err := s.CloudAgentRun("user", runID)
@@ -102,6 +114,7 @@ func approveAgentMediaDraft(t *testing.T, s *Service, runID string) {
 	if err := s.DecideCloudAgentApproval("user", runID, run.Approval.ID, "approve", ""); err != nil {
 		t.Fatal(err)
 	}
+	isolateApprovedMediaWaiters(t, s)
 	if err := s.advanceCloudAgentByID("user", runID); err != nil {
 		t.Fatal(err)
 	}
@@ -133,6 +146,7 @@ func TestCloudAgentMediaApprovalCreatesNodeReferencesAndResult(t *testing.T) {
 	if err = s.DecideCloudAgentApproval("user", run.ID, waiting.Approval.ID, "approve", ""); err != nil {
 		t.Fatal(err)
 	}
+	isolateApprovedMediaWaiters(t, s)
 	if err = s.advanceCloudAgentByID("user", run.ID); err != nil {
 		t.Fatal(err)
 	}
