@@ -54,7 +54,7 @@ jobs:
       PUSH_TAGS: ${{ github.event_name == 'workflow_dispatch' && inputs.push_tags || 'true' }}
     steps:
       - name: Checkout work
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: work
           fetch-depth: 0
@@ -112,7 +112,10 @@ jobs:
         run: |
           set -euo pipefail
           # 不加 --force：main 一旦被本地提交污染，远端会直接拒绝，不会覆盖。
-          git push origin 'refs/remotes/upstream/main:refs/heads/main'
+          if ! git push origin 'refs/remotes/upstream/main:refs/heads/main'; then
+            echo "::error::推送 main 被拒绝。若报错提到 workflow，说明缺少 SYNC_TOKEN（fine-grained PAT，需 Contents 与 Workflows 的 Read and write）；若提到 non-fast-forward，说明 main 上出现了本地提交。"
+            exit 1
+          fi
           echo "sha=$(git rev-parse --short=8 refs/remotes/upstream/main)" >> "$GITHUB_OUTPUT"
 
       - name: Mirror tags
@@ -121,7 +124,10 @@ jobs:
           set -euo pipefail
           git fetch upstream --tags --force
           # 上游 tag 只会追加；若上游改写历史导致同名 tag 指向不同提交，这里会失败并暴露出来，需人工确认。
-          git push origin --tags
+          if ! git push origin --tags; then
+            echo "::error::tag 推送失败，通常是上游改写了同名 tag；确认上游 tag 指向后执行 git push origin --force refs/tags/<tag> 人工处理。"
+            exit 1
+          fi
 
       - name: Sync work
         id: work
@@ -129,6 +135,13 @@ jobs:
         run: |
           set -euo pipefail
           git switch work
+          # 合并上游后提交里可能包含 .github/workflows 改动，只有带 workflows 权限的令牌推得动。
+          push_work() {
+            if ! "$@"; then
+              echo "::error::推送 work 被拒绝。若报错提到 workflow，请配置 SYNC_TOKEN（fine-grained PAT，需 Contents 与 Workflows 的 Read and write）；若提到 non-fast-forward，说明远端 work 在本次运行期间被更新，重跑即可。"
+              exit 1
+            fi
+          }
           if [[ "$WORK_MODE" == "rebase" ]]; then
             if ! git rebase refs/remotes/upstream/main; then
               git diff --name-only --diff-filter=U > /tmp/conflict-files.txt || true
@@ -136,7 +149,7 @@ jobs:
               echo "conflict=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi
-            git push --force-with-lease origin HEAD:refs/heads/work
+            push_work git push --force-with-lease origin HEAD:refs/heads/work
           else
             if ! git merge --no-edit refs/remotes/upstream/main; then
               git diff --name-only --diff-filter=U > /tmp/conflict-files.txt || true
@@ -144,7 +157,7 @@ jobs:
               echo "conflict=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi
-            git push origin HEAD:refs/heads/work
+            push_work git push origin HEAD:refs/heads/work
           fi
           echo "conflict=false" >> "$GITHUB_OUTPUT"
           echo "sha=$(git rev-parse --short=8 HEAD)" >> "$GITHUB_OUTPUT"
