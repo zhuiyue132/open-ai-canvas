@@ -1,0 +1,8 @@
+# 本仓库锁定的本地工具链版本；CI 与镜像构建使用同一批值。
+#
+# 这份文件对不读 asdf/mise 的人没有强制力，版本不一致时的可观察症状见 AGENTS.md 第 8 节：
+# bun 落后于 1.3.9 时，TextDecoder 不支持 gb18030，`web/test/canvas-document.test.ts`
+# 的回退用例会失败（看起来像代码缺陷，实际是运行时差异）。
+bun 1.3.9
+nodejs 22.19.0
+golang 1.25.0
