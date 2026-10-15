@@ -8,3 +8,32 @@ updates:
     directory: /web
     schedule:
       interval: weekly
+  # Agent runtime 有自己的 package-lock.json，不在 /web 的依赖树里。
+  - package-ecosystem: npm
+    directory: /backend/agent-runtime/pi
+    schedule:
+      interval: weekly
+  # Workflow 里固定版本号的 actions 原本无人升级：verify-notes.yml 用 checkout@v5、
+  # quality.yml 还停在 @v4，靠人工发现。dependabot 不支持 workflow 的递归目录，只能指到根。
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+  # Dockerfile 分别在根目录、backend/ 和 yingce-agent/；镜像基础版本（bun/golang/node/nginx）
+  # 决定本地与 CI 的运行时，不允许长期漂移。
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+  - package-ecosystem: docker
+    directory: /backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+  - package-ecosystem: docker
+    directory: /yingce-agent
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3

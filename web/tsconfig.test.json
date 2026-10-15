@@ -1,0 +1,11 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        // 测试依赖 bun:test 类型；@types/bun 固定在运行时版本，见 package.json。
+        // 不开 allowImportingTsExtensions：仓库里带扩展名的导入配套写了 @ts-expect-error
+        // （Node 原生测试运行器要求保留扩展名），开了会让这些抑制变成 TS2578 的新错。
+        "types": ["bun", "node"]
+    },
+    "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx", "test/**/*.mjs"],
+    "exclude": ["node_modules"]
+}
