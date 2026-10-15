@@ -1,0 +1,9 @@
+Total messages: 6 (Errors: 2, Warnings: 1)
+Returning 3 messages for level "warning"
+
+[ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://127.0.0.1:3001/api/model-catalog:0
+[WARNING] 模型目录后台刷新失败，保留本地配置 ApiError: 请先登录
+    at unwrapTransportError (http://127.0.0.1:3001/src/services/api/request.ts:58:9)
+    at request (http://127.0.0.1:3001/src/services/api/request.ts:45:9)
+    at async http://127.0.0.1:3001/src/lib/user-session.ts?t=1792052338211:120:20 @ http://127.0.0.1:3001/@vite/client:524
+[ERROR] Warning: [antd: Modal] `focusTriggerAfterClose` is deprecated. Please use `focusable.focusTriggerAfterClose` instead. @ http://127.0.0.1:3001/@vite/client:524

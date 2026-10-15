@@ -1,0 +1,6 @@
+Total messages: 6 (Errors: 3, Warnings: 0)
+Returning 3 messages for level "warning"
+
+[ERROR] Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead. @ http://127.0.0.1:3001/@vite/client:524
+[ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:3001/api/user-data/canvases?page=1&pageSize=10:0
+[ERROR] Warning: [antd: Modal] `destroyOnClose` is deprecated. Please use `destroyOnHidden` instead. @ http://127.0.0.1:3001/@vite/client:524

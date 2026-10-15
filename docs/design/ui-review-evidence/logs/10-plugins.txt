@@ -1,0 +1,4 @@
+Total messages: 4 (Errors: 1, Warnings: 0)
+Returning 1 messages for level "warning"
+
+[ERROR] Warning: [antd: Modal] `focusTriggerAfterClose` is deprecated. Please use `focusable.focusTriggerAfterClose` instead. @ http://127.0.0.1:3001/@vite/client:524

@@ -1,0 +1,43 @@
+Total messages: 43 (Errors: 0, Warnings: 40)
+Returning 40 messages for level "warning"
+
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524
+[WARNING] <Focusable> child must have an interactive ARIA role. @ http://127.0.0.1:3001/@vite/client:524

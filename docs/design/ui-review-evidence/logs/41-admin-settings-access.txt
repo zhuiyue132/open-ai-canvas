@@ -1,0 +1,4 @@
+Total messages: 4 (Errors: 1, Warnings: 0)
+Returning 1 messages for level "warning"
+
+[ERROR] Warning: [antd: Switch] `size="default"` is deprecated. Please use `size="medium"` instead. @ http://127.0.0.1:3001/@vite/client:524
