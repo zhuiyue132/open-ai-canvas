@@ -167,6 +167,7 @@ cd web && bun run dev
 - 功能、代码地图、待测试维护在 `docs/content/docs/overview/features.mdx`、`docs/content/docs/backend/code-map.mdx`、`docs/content/docs/progress/pending-test.mdx`；接口与协议参考文档为 `docs/content/docs/backend/http-api.mdx`、`docs/content/docs/backend/backend-database.mdx`、`backend/internal/protocol/docs/*.md`、`plugin-packages/*/docs/interface.md`、`backend/builtin/*/SKILL.md`。已实现但未由用户确认的变化先写入 `pending-test.mdx`。
 - API、数据表、SSE、资源存储、部署或安全边界变化时同步对应参考文档；不要只改代码和根 README。
 - 根 `README.md` 只保留项目定位、能力概览、快速开始、架构概览、部署、安全、参考文档入口和许可证；`README.md` 与 `docs/index.md` 的导航只指向参考类文档，出现失效链接时同批修复。
+- `docs/` 全量随仓库分发：`docs/.gitignore` 覆盖根 `.gitignore` 的 `docs/*` 白名单，新增文档不需要 `git add -f`；`.env*`、`.settings-key`、日志、数据库与缓存目录仍被压住。根 `.gitignore` 保持上游原样，避免与每日同步冲突。
 - 文档默认中文，不写过期日期，不公开密码、Token、Cookie、真实账号或机器敏感路径。命令、端口、环境变量必须以当前脚本和 Compose 为准。
 - Git 提交说明使用 `<type>(<scope>): <业务模块> - <变更摘要>`，`type` 为 `feat|fix|refactor|perf|docs|test|build|ci|chore|revert`。
 
