@@ -139,17 +139,22 @@ cd web && bun run dev
 - 本地缓存放 `.local/cache`；不要提交数据库、上传文件、`.env`、真实密钥、构建产物或编辑器配置。
 - 宿主机开发：`backend/` 运行 `CANVAS_BACKEND_DATA_DIR=../.local/project-workbench-debug go run ./cmd/server`，`web/` 使用 Bun 和 Vite；不要用 pnpm/npm 覆盖同一套 `node_modules`，也不要提交 `pnpm-lock.yaml` 或 `package-lock.json`。Docker 热更新使用 `docker-compose.dev.yml`；本地构建运行使用 `docker-compose.local.yml`。
 - 用户要求“部署到服务器/云服务器/生产环境”且未指定方式时，默认采用 `scripts/install-server-image.sh` + 官方已发布 Release + `docker-compose.deploy.yml` + Host Updater；先确认该 Release 的镜像、更新器二进制和 `SHA256SUMS` 可用，按同一 Release 固定 `CANVAS_IMAGE_TAG` 和 `REPOSITORY_REF`。不要自行简化成 `web/backend` 两容器 SQLite 编排或生成替代 `compose.yml`；用户明确要求源码构建或轻量试运行时才选择对应方案，并说明在线更新边界。GHCR 拉取失败应排查网络、包可见性和认证，不静默切换为不受管源码部署。
-- 生产 Compose 使用 `docker-compose.deploy.yml`（PostgreSQL、Redis、migrate、yingce-agent、backend、web）。源码构建可叠加 `docker-compose.build.yml`，但本地镜像不由 Host Updater 管理；`scripts/install-server.sh` 不安装更新器，不能当作在线更新安装入口。公网只暴露 web 的 `CANVAS_HTTP_PORT`（默认 `3000`），backend `8080` 留在 Compose 网络内。
+- 生产 Compose 使用 `docker-compose.deploy.yml`（PostgreSQL、Redis、migrate、yingce-agent、backend、web）。源码构建可叠加 `docker-compose.build.yml`，但本地镜像不由 Host Updater 管理；`scripts/install-server.sh` 不安装更新器，不能当作在线更新安装入口。`docker-compose.server.yml` 是源码构建的服务器编排（公开 web 端口并自建镜像），与 §1 的本地编排不是同一件事。
+- 二开部署不要用 README 的一键命令：`scripts/install-server-image.sh` 的默认镜像仓库与 Compose 都指向上游，装出来的是上游代码且不会报错。改走 `scripts/fork-deploy-image.sh`，身份约定见 `docs/AGENT_LOCAL_DEVELOPMENT.md` 第 7 节。公网只暴露 web 的 `CANVAS_HTTP_PORT`（默认 `3000`），backend `8080` 留在 Compose 网络内。
 - 诊断已有部署时，依据实际 Compose 文件、容器镜像、数据库驱动、数据挂载和 Host Updater 状态分别报告。源码构建不等于 local，SQLite 不证明使用了 `docker-compose.local.yml`，自定义文件名也不证明采用了任何仓库编排。已有 SQLite/自定义部署须先备份、迁移和验证，再转为受管部署；不要直接覆盖原 Compose 或数据卷。
 - 默认不启动 dev server；只有用户明确要求浏览器预览或联调时才启动，并先确认端口、数据目录和现有进程。
 - 健康检查只能证明入口可用，不能替代登录、SSE、任务生成和资源访问验证。
 
 ## 8. 验证纪律
 
-项目当前默认不自动运行语法检查、类型检查、测试或构建。用户明确要求验证，或改动风险需要验证时，按范围选择最小充分命令，并在交付中如实记录：
+项目在 `work` 分支的每次推送和每个 PR 上都会跑 `.github/workflows/quality.yml`（后端 go test + PostgreSQL/Redis 依赖用例、前端 typecheck/build/lint/test/P0 E2E、支付插件产物、Compose 与 nginx 配置校验、依赖漏洞与密钥扫描）。本地验证用来在推送前拦住问题，以及覆盖 CI 不做的浏览器验收；沿用下面的命令，不要把“CI 会跑”当作不验证的理由。
 
-- 前端：`cd web && bun run build`；专项测试用 `bun test ...`。UI 退场规则用 `bun run lint`（只禁 antd Empty 和静态 `Modal.confirm`，不是风格检查）。
-- 后端：`cd backend && go test ./...`；涉及 PostgreSQL、资源、任务或权限时补对应集成/冒烟路径。
+- 前端：`cd web && bun run build`；专项测试用 `bun test ...`，本地先跑关键回归可 `bun run test:gate`。UI 退场规则用 `bun run lint`（只禁 antd Empty 和静态 `Modal.confirm`，不是风格检查）。
+- 前端测试类型：新增测试文件必须类型干净，由 `cd web && bun run typecheck:test:new` 把关；`bun run typecheck:test` 会列出全部存量欠账（当前仍有几十个文件待清，见笔记）。
+- 本地工具链版本由 `.tool-versions` 声明（bun 1.3.9、Node 22.19.0、Go 1.25.0），与 CI 和镜像一致。Bun 低于 1.3.9 时 `TextDecoder` 不支持 gb18030，`web/test/canvas-document.test.ts` 的回退用例会失败：先核对 `bun --version`，不要把运行时差异当成代码缺陷。
+- 后端：`cd backend && go test ./...`；涉及 PostgreSQL、资源、任务或权限时补对应集成/冒烟路径。macOS 需要可用的 CGO 工具链（项目直接依赖需要 cgo 的 sqlite 驱动），工具链不可用时整个套件会以 `runtime/cgo` 报错集体 `build failed`，不是代码问题。
+- 部署面：改动 `docker-compose*.yml` 或 `nginx.conf` 后，本地先跑 `docker compose --env-file <占位 env> -f <file> config --quiet` 与 `docker run --rm --add-host backend:127.0.0.1 -v $PWD/nginx.conf:/etc/nginx/conf.d/default.conf:ro nginx:1.27-alpine nginx -t`。
+- 配置面：新增后端读取的 `CANVAS_*` 环境变量时，同步写进 `.env.example`（默认值、取值区间、影响），`python3 .github/scripts/check-env-docs.py` 会拦截漏登记。
 - 云端 Agent：前端事件流和审批路径依赖后端 `/api/agent` 接口；在该接口实现后补充后端冒烟、Worker 运行和 SSE 断线重连验证。
 - 决策笔记：从仓库根目录运行 `bun run .agents/skills/write-notes-like-deepseek/scripts/verify-agent-note-tree.ts`，并连同同目录 `verify-agent-note-format.ts`、`verify-archived-agent-notes.ts` 三线通过（见 §9）。`docs/` 只有 MDX 内容与配图，含文档站构建配置的仓库不在此处，没有可执行的文档站构建命令。
 - UI 变更能浏览器验证时，检查关键路由、明暗主题、滚动、弹窗、空态和核心交互；不能验证时说明替代依据，不把静态阅读或 `git diff` 写成运行验证。
