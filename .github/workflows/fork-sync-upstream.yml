@@ -1,0 +1,194 @@
+name: Fork sync upstream
+
+# 二开仓库（本仓库 = zhuiyue132/open-ai-canvas）的上游同步：
+#   main = ddcat-ai/open-ai-canvas 的 main 纯镜像，禁止本地提交，只允许快进；
+#   work = 二开主线，定时把上游 main 合并（或 rebase）进来。
+#
+# 本文件必须存在于默认分支（work）上，schedule 才会生效：
+# https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows
+#
+# 需要仓库 secret SYNC_TOKEN（fine-grained PAT）：
+#   Contents: Read and write、Workflows: Read and write，可选 Actions: Read and write。
+# 上游经常修改 .github/workflows/*，用默认 GITHUB_TOKEN 推送含 workflow 改动的提交会被
+# GitHub 拒绝（refusing to allow a GitHub App to create or update workflow ... without
+# `workflows` permission），所以主路径必须是 PAT。
+on:
+  schedule:
+    # UTC 18:00 = 北京时间次日 02:00，避开上游白天的提交与评审高峰。
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+    inputs:
+      work_mode:
+        description: work 分支同步方式
+        type: choice
+        options:
+          - merge
+          - rebase
+          - none
+        default: merge
+      push_tags:
+        description: 同步上游 tag 到本仓库
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
+concurrency:
+  group: fork-sync-upstream
+  cancel-in-progress: false
+
+env:
+  UPSTREAM_URL: https://github.com/ddcat-ai/open-ai-canvas.git
+  # 上游自定义的镜像发布流水线，push 到 main 或推送 v* tag 就会触发，
+  # 在二开仓库里必须保持 disabled_manually，否则每次同步都会重跑一遍镜像构建。
+  INHERITED_PUBLISH_WORKFLOW: publish-images.yml
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      WORK_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.work_mode || 'merge' }}
+      PUSH_TAGS: ${{ github.event_name == 'workflow_dispatch' && inputs.push_tags || 'true' }}
+    steps:
+      - name: Checkout work
+        uses: actions/checkout@v4
+        with:
+          ref: work
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.SYNC_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Configure remotes
+        env:
+          SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
+          TOKEN: ${{ secrets.SYNC_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$SYNC_TOKEN" ]]; then
+            echo "::warning::未配置 SYNC_TOKEN，本次同步只要包含 .github/workflows 改动就会被 GitHub 拒绝"
+          fi
+          git config user.name "fork-sync[bot]"
+          git config user.email "fork-sync[bot]@users.noreply.github.com"
+          git remote add upstream "$UPSTREAM_URL"
+          # 令牌只写进 runner 内的 .git/config，不打印、不进入提交内容。
+          git remote set-url origin "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+      # 先确认上游的镜像发布流水线是关闭的，再动手推送，避免误触发几十次镜像构建。
+      - name: Preflight - inherited publish pipeline stays disabled
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          workflow="$INHERITED_PUBLISH_WORKFLOW"
+          state=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow" --jq .state)
+          if [[ "$state" != "disabled_manually" ]]; then
+            gh workflow disable "$workflow" --repo "$GITHUB_REPOSITORY" || true
+            state=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow" --jq .state)
+          fi
+          if [[ "$state" != "disabled_manually" ]]; then
+            echo "::error::$workflow 当前状态为 $state；同步 main 或推送 tag 会在本仓库触发上游的镜像发布流水线。请执行 gh workflow disable $workflow -R $GITHUB_REPOSITORY 后重跑。"
+            exit 1
+          fi
+
+      - name: Fetch upstream and origin
+        run: |
+          set -euo pipefail
+          git fetch --prune upstream '+refs/heads/*:refs/remotes/upstream/*'
+          git fetch --prune origin '+refs/heads/*:refs/remotes/origin/*'
+
+      - name: Verify main is still a pure mirror
+        run: |
+          set -euo pipefail
+          if ! git merge-base --is-ancestor refs/remotes/origin/main refs/remotes/upstream/main; then
+            echo "::error::origin/main 不再是上游 main 的祖先，说明 main 上出现了本地提交。请把提交移到 work，再把 main 重新对齐到 upstream/main 后重跑。"
+            exit 1
+          fi
+
+      - name: Mirror main
+        id: main
+        run: |
+          set -euo pipefail
+          # 不加 --force：main 一旦被本地提交污染，远端会直接拒绝，不会覆盖。
+          git push origin 'refs/remotes/upstream/main:refs/heads/main'
+          echo "sha=$(git rev-parse --short=8 refs/remotes/upstream/main)" >> "$GITHUB_OUTPUT"
+
+      - name: Mirror tags
+        if: ${{ env.PUSH_TAGS == 'true' }}
+        run: |
+          set -euo pipefail
+          git fetch upstream --tags --force
+          # 上游 tag 只会追加；若上游改写历史导致同名 tag 指向不同提交，这里会失败并暴露出来，需人工确认。
+          git push origin --tags
+
+      - name: Sync work
+        id: work
+        if: ${{ env.WORK_MODE != 'none' }}
+        run: |
+          set -euo pipefail
+          git switch work
+          if [[ "$WORK_MODE" == "rebase" ]]; then
+            if ! git rebase refs/remotes/upstream/main; then
+              git diff --name-only --diff-filter=U > /tmp/conflict-files.txt || true
+              git rebase --abort
+              echo "conflict=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            git push --force-with-lease origin HEAD:refs/heads/work
+          else
+            if ! git merge --no-edit refs/remotes/upstream/main; then
+              git diff --name-only --diff-filter=U > /tmp/conflict-files.txt || true
+              git merge --abort
+              echo "conflict=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            git push origin HEAD:refs/heads/work
+          fi
+          echo "conflict=false" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse --short=8 HEAD)" >> "$GITHUB_OUTPUT"
+
+      # 冲突无法自动解决：中止本地合并（仓库保持原样），开一个 issue 让人工介入。
+      - name: Report conflict
+        if: ${{ steps.work.outputs.conflict == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          title="上游同步冲突：work ← upstream/main"
+          {
+            echo "定时同步把 \`upstream/main\` 合并进 \`work\` 时发生冲突，已中止合并，仓库未做任何改动。"
+            echo
+            echo "冲突文件："
+            echo
+            sed -e 's/^/- `/' -e 's/$/`/' /tmp/conflict-files.txt
+            echo
+            echo "本地处理："
+            echo
+            echo '```bash'
+            echo "git fetch upstream --prune"
+            echo "git switch work"
+            echo "git merge upstream/main   # 解完冲突后 git push origin work"
+            echo '```'
+          } > /tmp/issue-body.md
+          number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json number,title \
+            --jq "map(select(.title == \"$title\"))[0].number // empty")
+          if [[ -n "$number" ]]; then
+            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" --body-file /tmp/issue-body.md
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body-file /tmp/issue-body.md
+          fi
+          echo "::error::work 与 upstream/main 冲突，详见 issue"
+          exit 1
+
+      - name: Summary
+        if: ${{ always() }}
+        run: |
+          {
+            echo "## 上游同步"
+            echo
+            echo "- main 镜像到：\`${{ steps.main.outputs.sha }}\`"
+            echo "- work 模式：\`$WORK_MODE\`，结果：\`${{ steps.work.outputs.conflict == 'true' && '冲突未合并' || steps.work.outputs.sha }}\`"
+            echo "- tag 同步：$PUSH_TAGS"
+          } >> "$GITHUB_STEP_SUMMARY"
