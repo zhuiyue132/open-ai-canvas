@@ -44,7 +44,10 @@
 - `docs/plans/`：上游实施计划 8 篇
 - `docs/superpowers/specs/`：上游规格 2 篇
 
-## 本地协作文档（不随仓库分发）
+## 文档分发
+
+`docs/` 全量随仓库分发：根 `.gitignore` 的 `docs/*` 白名单被 `docs/.gitignore` 覆盖，新增文档不需要 `git add -f`；`.env*`、`.settings-key`、日志、数据库与缓存目录仍被压住。本机私密或临时内容放 `.local/`（已被忽略）。
 
 - [AGENT_LOCAL_DEVELOPMENT.md](AGENT_LOCAL_DEVELOPMENT.md)：二开仓库的远端结构、`main` 镜像 / `work` 主线约定与上游定时同步。
-- `beautifului-creation-design.md`：本地设计参考，未纳入版本控制，可能不存在于当前机器。
+
+规则与取舍记录在 `.agents/notes/implemented/process/2026-10-15-docs-versioned-in-repo.md`。

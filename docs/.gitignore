@@ -1,0 +1,31 @@
+# docs/ 全量纳入版本控制。
+# 上游根 .gitignore 用 "docs/* + 逐文件白名单" 控制哪些文档随仓库分发；本仓库需要所有文档对
+# 协作者与 Agent 可见，因此在 docs/ 内用本文件覆盖上级规则（更深的 .gitignore 优先），并保持
+# 根 .gitignore 原样，避免每日上游同步在同一片段上反复冲突。
+!*
+!*/
+
+# 重新压住不该入库的本地与敏感文件：!* 会同时解锁根 .gitignore 里针对密钥、日志、数据库
+# 和缓存目录的规则，同一文件内后写的规则优先，所以这些必须放在上面两条之后。
+.env*
+!.env.example
+.settings-key
+*.log
+*.tmp
+*.bak
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.tsbuildinfo
+.DS_Store
+node_modules/
+.cache/
+.data/
+coverage/
+dist/
+.idea/
+.vscode/
+.claude/
+.cursor/
+.serena/
