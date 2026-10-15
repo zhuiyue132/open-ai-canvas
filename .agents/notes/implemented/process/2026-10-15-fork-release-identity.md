@@ -33,7 +33,18 @@ Status: implemented
 
 约定写进 `docs/AGENT_LOCAL_DEVELOPMENT.md` 第 7 节与 `AGENTS.md` 第 7 节。
 
-二开发布工作流（产出 `fork-v*` 的镜像与 Release 资产）**尚未建立**：当前二开改动只有文档、CI 与工具链，没有部署面改动。重访信号明确——第一次出现影响部署的二开改动（`Dockerfile`、`nginx.conf`、compose、后端运行时配置）时，先建发布工作流，再打 `fork-v*` tag。
+二开发布流水线是 `.github/workflows/publish-fork-images.yml`（独立文件名：上游继承来的 `publish-images.yml` 必须保持 `disabled_manually`，同步工作流的 preflight 会强制这一点）：
+
+- 触发：推送 `fork-v*` tag 走完整流程；`workflow_dispatch` 走预演（只构建并推送 `sha-<commit>-<arch>` 镜像，不推广版本标签、不建 Release）。
+- 版本校验：tag 必须是 `fork-<VERSION>` 或 `fork-<VERSION>.<序号>`（`VERSION` 仍是上游维护的 `v1.6.8.3`，末尾 `.N` 是二开序号），其余一律拒绝；嵌入二进制的版本用去掉 `fork-` 前缀的字符串。
+- **不读 `CHANGELOG.md`**：上游近 30 天改了 38 次，二开条目会在每轮同步反复冲突；Release 说明用 `gh release create --generate-notes`。
+- 推广步骤不调用上游的 `.github/scripts/promote-image.sh`：它把版本标签限定为 `refs/tags/v*` 且要求纯数字版本号，`fork-v*` 不满足；改为用 `docker buildx imagetools create` 把已验证的 digest 组装成版本标签（digest 不变，推广的是不可变内容），并校验 digest 数量（backend 双架构为 2）。
+- Release 资产与上游一致（两个架构的 Host Updater 二进制 + `SHA256SUMS` + `docker-compose.deploy.yml`），安装脚本按 `REPOSITORY` 从 GitHub Releases 取用。
+
+为了让"引导脚本 → 更新器 → Release 资产"这条链在二开仓库闭合，两个上游脚本各改了一处：
+
+- `scripts/install-server-image.sh`：从 `UPDATER_INSTALL_URL` 推出 `REPOSITORY`（`raw.githubusercontent.com/<owner>/<repo>/...`）并传给更新器安装脚本；URL 不是 GitHub 时保持原有默认，不会误伤镜像站。
+- `scripts/install-host-updater.sh`：`RELEASE_TAG` 的推导由"不以 `v` 开头就补 `v`"改为"纯数字才补 `v`，其余按原样"，否则 `fork-v1.6.8.3.1` 会被拼成 `vfork-v1.6.8.3.1` 去下载不存在的 Release。上游 `1.6.8.3` / `v1.6.8.3` 两种写法行为不变。
 
 ## Alternatives considered
 
@@ -49,11 +60,14 @@ Status: implemented
   - 部署前置条件是二开 Release 已产出。在发布工作流建立前，`fork-deploy-image.sh` 会一路走到 `docker compose pull` 才失败（预期行为，不是缺陷）。
   - `--check-only` 只能校验身份与内部一致性，不能证明镜像、`SHA256SUMS` 或 Release 资产真的存在。
   - 包装脚本本身也是二开文件，需要跟着上游安装脚本的接口变化维护（上游若改环境变量名，它不会自动跟随）。
-  - 二开版本目前没有在线更新能力：Host Updater 能装、能自更新，但拉不到二开镜像，直到发布工作流建立。
+  - 发布流水线**从未真正跑过一次 `fork-v*` 发布**：本地只能验证标签校验、脚本语法与被引用文件，GHCR 推送、双架构构建与 Release 创建都要等第一次真实运行；`workflow_dispatch` 的预演用来先验证构建。
+  - 发布要消耗双架构 Runner（含 `ubuntu-24.04-arm`），且 `fork-v*` tag 打错会直接失败——这是有意的，避免把上游版本号当二开发版。
 
 ## Verification
 
 - `bash -n scripts/fork-deploy-image.sh` 通过。
 - 校验分支逐个执行：`CANVAS_IMAGE_TAG=fork-v1.6.8.3.1 --check-only` 打印六个解析值并退出 0；缺 tag、`latest`、`REPOSITORY_REF` 与 tag 不一致、`IMAGE_REPOSITORY`/`COMPOSE_URL`/`UPDATER_INSTALL_URL` 指向上游，六种输入全部退出 1 并给出对应原因；非 root 执行在下载前退出并提示用 sudo。
 - 修掉一个实测到的缺陷：`$VAR` 紧跟全角字符时 bash 会把多字节首字节并入变量名（`set -u` 下报 `IMAGE_REPOSITORY…: unbound variable`），变量引用全部改为 `${VAR}` 后三条拒绝信息恢复正常（`grep` 校验已无裸 `$VAR` 紧邻非 ASCII）。
-- 未验证：真实 `fork-v*` 的端到端部署与 Host Updater 自更新（需要先有发布工作流与二开镜像）。
+- 发布流水线（本地可验证的部分）：YAML 可解析、全部 `run` 片段 `bash -n` 通过、被引用的 `Dockerfile`/`backend/Dockerfile`/`yingce-agent/Dockerfile`/`docker-compose.deploy.yml`/`cmd/host-updater` 都存在；`prepare` 步骤的标签校验在 bash 5 容器里逐例验证：`fork-v1.6.8.3.1` 与 `fork-v1.6.8.3` 通过（`release=true`，owner 小写化正确），`fork-v1.6.8`、`fork-v1.6.8.3.x` 与裸 `v1.6.8.3` 被拒绝，`workflow_dispatch` 得到 `image_tag=dry-run` / `release=false`。
+- 两个脚本改动：`RELEASE_TAG` 推导四种输入（`1.6.8.3` → `v1.6.8.3`；`v1.6.8.3`、`fork-v1.6.8.3.1`、`fork-v1.6.8.3` → 原样）；`REPOSITORY` 从更新器 URL 提取三种输入（二开 URL → `zhuiyue132/open-ai-canvas`；上游 URL → `ddcat-ai/open-ai-canvas`；非 GitHub URL → 空并回落默认）。两个脚本 `bash -n` 通过。
+- 未验证：真实 `fork-v*` 的端到端发布（GHCR 推送、双架构构建、Release 创建）与 Host Updater 自更新——需要先由人触发一次发布或预演。

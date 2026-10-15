@@ -34,10 +34,12 @@ read_image_tag() {
     local configured
     configured="$(sed -n 's/^CANVAS_IMAGE_TAG=//p' "${INSTALL_DIR}/.env" | tail -n 1)"
     [[ -n "$configured" && "$configured" != "latest" ]] || fail "请先把 CANVAS_IMAGE_TAG 固定为已发布版本"
-    if [[ "$configured" == v* ]]; then
-        RELEASE_TAG="$configured"
-    else
+    # 纯数字版本号补 v 前缀；已带前缀或使用自定义 tag 方案（例如二开的 fork-v*）按原样使用，
+    # 否则会把 fork-v1.6.8.3.1 拼成 vfork-v1.6.8.3.1 去下载不存在的 Release。
+    if [[ "$configured" =~ ^[0-9] ]]; then
         RELEASE_TAG="v${configured}"
+    else
+        RELEASE_TAG="$configured"
     fi
 }
 

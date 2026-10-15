@@ -183,10 +183,16 @@ download_compose() {
 
 install_host_updater() {
     step "安装宿主机在线更新服务"
-    local installer
+    local installer repository
     installer="$(mktemp)"
+    # 更新器按 REPOSITORY 到 GitHub Releases 取二进制与 SHA256SUMS。二开部署时安装脚本 URL 指向
+    # 自己的仓库，仓库名必须跟着走，否则会去上游找同名 tag 的资产（不存在即 404）。
+    repository="${REPOSITORY:-}"
+    if [[ -z "$repository" && "$UPDATER_INSTALL_URL" =~ ^https://raw\.githubusercontent\.com/([^/]+/[^/]+)/ ]]; then
+        repository="${BASH_REMATCH[1]}"
+    fi
     curl -fsSL "$UPDATER_INSTALL_URL" -o "$installer"
-    INSTALL_DIR="$INSTALL_DIR" bash "$installer"
+    REPOSITORY="$repository" INSTALL_DIR="$INSTALL_DIR" bash "$installer"
     rm -f "$installer"
 
     step "重建 backend 以启用在线更新"

@@ -1,0 +1,253 @@
+name: Publish fork container images
+
+# 二开自己的镜像与 Release 流水线。上游继承来的 publish-images.yml 必须保持
+# `disabled_manually`（fork-sync-upstream.yml 的 preflight 会强制），所以这份用独立文件名。
+#
+# 二开版本号与上游正交：tag 形如 `fork-v1.6.8.3.1`，其中 `v1.6.8.3` 是 VERSION，末尾 `.1` 是
+# 二开序号；镜像、Compose、Host Updater 都用同一个 tag，对应 scripts/fork-deploy-image.sh。
+# 不读 CHANGELOG（上游近 30 天改了 38 次，二开条目会反复冲突），Release 说明用自动生成。
+on:
+  push:
+    tags:
+      - "fork-v*"
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 预演标签：只构建并推送 sha- 标签镜像，不推广版本标签、不发布 Release
+        default: dry-run
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-fork-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    name: Quality checks
+    uses: ./.github/workflows/quality.yml
+
+  prepare:
+    name: Resolve fork version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.info.outputs.version }}
+      image_tag: ${{ steps.info.outputs.image_tag }}
+      build_time: ${{ steps.info.outputs.build_time }}
+      owner: ${{ steps.info.outputs.owner }}
+      release: ${{ steps.info.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 构建时间取提交时间，保证同一提交的重复运行得到相同标签与缓存键。
+          fetch-depth: 0
+      - id: info
+        name: Validate fork release metadata
+        env:
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          DISPATCH_TAG: ${{ inputs.version_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '\r\n' < VERSION)"
+          if [[ "$GITHUB_REF" == refs/tags/fork-v* ]]; then
+            image_tag="$GITHUB_REF_NAME"
+            # 允许 fork-<VERSION> 与 fork-<VERSION>.<序号>；其余一律拒绝，避免把上游版本号
+            # 或手写的任意标签当作二开发版。
+            candidate="${image_tag#fork-}"
+            rest="${candidate#"$version"}"
+            if [[ "$candidate" != "$version"* ]] || { [[ -n "$rest" ]] && ! [[ "$rest" =~ ^\.[0-9]+$ ]]; }; then
+              echo "::error::tag $image_tag 与 VERSION=$version 不匹配：应为 fork-$version 或 fork-$version.<序号>" >&2
+              exit 1
+            fi
+            release=true
+          else
+            [[ -n "${DISPATCH_TAG:-}" ]] || { echo "::error::workflow_dispatch 需要 version_tag" >&2; exit 1; }
+            image_tag="$DISPATCH_TAG"
+            candidate="$version"
+            release=false
+          fi
+          {
+            echo "version=$candidate"
+            echo "image_tag=$image_tag"
+            echo "release=$release"
+            echo "build_time=$(git show -s --format=%cI HEAD)"
+            echo "owner=${REPOSITORY_OWNER,,}"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.image }} (${{ matrix.arch }})
+    needs: [prepare]
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # web 的构建阶段固定在 BUILDPLATFORM，静态文件只编译一次。
+          - image: open-ai-canvas-web
+            dockerfile: Dockerfile
+            arch: multi
+            platforms: linux/amd64,linux/arm64
+            runner: ubuntu-24.04
+          - image: open-ai-canvas-backend
+            dockerfile: backend/Dockerfile
+            arch: amd64
+            platforms: linux/amd64
+            runner: ubuntu-24.04
+          - image: open-ai-canvas-backend
+            dockerfile: backend/Dockerfile
+            arch: arm64
+            platforms: linux/arm64
+            runner: ubuntu-24.04-arm
+          - image: open-ai-canvas-yingce-agent
+            dockerfile: yingce-agent/Dockerfile
+            arch: multi
+            platforms: linux/amd64,linux/arm64
+            runner: ubuntu-24.04
+    env:
+      IMAGE: ghcr.io/${{ needs.prepare.outputs.owner }}/${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push immutable commit image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platforms }}
+          push: true
+          build-args: |
+            BUILD_VERSION=${{ needs.prepare.outputs.version }}
+            BUILD_COMMIT=${{ github.sha }}
+            BUILD_TIME=${{ needs.prepare.outputs.build_time }}
+          tags: ${{ env.IMAGE }}:sha-${{ github.sha }}-${{ matrix.arch }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
+          cache-from: type=gha,scope=fork-${{ matrix.image }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=fork-${{ matrix.image }}-${{ matrix.arch }}
+      - name: Record image digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        shell: bash
+        run: |
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "Invalid image digest" >&2; exit 1; }
+          mkdir -p "$RUNNER_TEMP/digests"
+          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.image }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
+
+  # 只用 sha- 标签的预演运行到此为止：不推广可变标签，也不创建 Release。
+  publish:
+    name: Publish ${{ matrix.image }} manifest
+    if: needs.prepare.outputs.release == 'true'
+    needs: [checks, prepare, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [open-ai-canvas-web, open-ai-canvas-backend, open-ai-canvas-yingce-agent]
+    concurrency:
+      group: fork-image-tags-${{ matrix.image }}-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: digests-${{ matrix.image }}-*
+          path: ${{ runner.temp }}/digests
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # 不调用 .github/scripts/promote-image.sh：它把版本标签限定为 refs/tags/v* 且要求纯数字
+      # 版本号，二开的 fork-v* 标签不满足；这里直接用 buildx imagetools 把已验证的 digest
+      # 组装成版本标签，digest 不变，等于推广不可变内容。
+      - name: Promote verified digests
+        env:
+          IMAGE: ghcr.io/${{ needs.prepare.outputs.owner }}/${{ matrix.image }}
+          IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
+          EXPECTED_DIGESTS: ${{ matrix.image == 'open-ai-canvas-backend' && '2' || '1' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          sources=()
+          for file in "$RUNNER_TEMP"/digests/*; do
+            sources+=("${IMAGE}@sha256:$(basename "$file")")
+          done
+          if (( ${#sources[@]} != EXPECTED_DIGESTS )); then
+            echo "::error::期望 ${EXPECTED_DIGESTS} 个 digest，实际 ${#sources[@]} 个" >&2
+            exit 1
+          fi
+          docker buildx imagetools create \
+            --tag "${IMAGE}:${IMAGE_TAG}" \
+            --tag "${IMAGE}:sha-${GITHUB_SHA}" \
+            "${sources[@]}"
+
+  release:
+    name: Publish release assets
+    if: needs.prepare.outputs.release == 'true'
+    needs: [prepare, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Build Host Updater
+        working-directory: backend
+        shell: bash
+        run: |
+          mkdir -p ../dist
+          for arch in amd64 arm64; do
+            CGO_ENABLED=0 GOOS=linux GOARCH="$arch" go build -trimpath -ldflags="-s -w" -o "../dist/open-ai-canvas-host-updater-linux-$arch" ./cmd/host-updater
+          done
+          cd ../dist
+          sha256sum open-ai-canvas-host-updater-linux-* > SHA256SUMS
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
+        shell: bash
+        run: |
+          assets=(
+            dist/open-ai-canvas-host-updater-linux-amd64
+            dist/open-ai-canvas-host-updater-linux-arm64
+            dist/SHA256SUMS
+            docker-compose.deploy.yml
+          )
+          if gh release view "$IMAGE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$IMAGE_TAG" "${assets[@]}" --clobber
+          else
+            gh release create "$IMAGE_TAG" "${assets[@]}" \
+              --verify-tag \
+              --title "$IMAGE_TAG" \
+              --generate-notes
+          fi
