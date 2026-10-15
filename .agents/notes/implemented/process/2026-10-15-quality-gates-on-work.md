@@ -28,9 +28,9 @@ Status: implemented
   - `bun run typecheck:test:new`：只对本次 diff 新增的测试文件（含未跟踪文件）拦类型错误，CI 用 `BASE_SHA` 判定范围。
 - 新增 `deploy-config` job：用占位 env 对 5 份 compose 逐份跑 `docker compose config --quiet`，再对 `docker-compose.deploy.yml`、`docker-compose.server.yml` 各叠加一次 `docker-compose.build.yml`；`nginx.conf` 用 Dockerfile 里解析出的 nginx 镜像跑 `nginx -t`，并加 `--add-host backend:127.0.0.1`（nginx 在加载配置时就解析 `proxy_pass` 上游）。
 - 新增 `vulnerability-scan` job：gitleaks 只扫本次推送的提交范围（`BASE_SHA..HEAD_SHA`，无法解析 base 时退化为 `HEAD~1..HEAD`），govulncheck 扫 Go 依赖，`bun audit` 扫 npm 依赖。
-- 两个依赖扫描目前都是**只报告不拦截**（`continue-on-error: true`），退出条件写在对应注释里：
-  - govulncheck：go1.25 下实测有 5 个可达漏洞（`golang.org/x/net` 4 个、`golang.org/x/text` 1 个），修掉它们要求 `golang.org/x/net v0.60.0`，而该版本 `requires go >= 1.26.0`——那是一次独立的工具链迁移，见 [仓库产物与工具链版本](2026-10-15-repo-artifacts-and-toolchain-pins.md)。
-  - `bun audit`：实测 112 条公告（2 critical / 50 high / 51 moderate / 9 low），含直接依赖 `react-router` 的 RSC CSRF 绕过，修它们是一次依赖大版本升级。
+- 依赖扫描的拦截线按各自能达到的"干净"定义拆分：
+  - **Go 拦截**：`govulncheck ./...` 直接作为门。它只认**可达**漏洞，工具链升到 Go 1.26 并升级 `golang.org/x/net v0.60.0` / `x/text v0.42.0` 后输出 `No vulnerabilities found`（升级动机与代价见 [仓库产物与工具链版本](2026-10-15-repo-artifacts-and-toolchain-pins.md)）。
+  - **npm 分两层**：`bun audit --audit-level=critical` 拦截，全量 `bun audit` 只报告。一轮 overrides 补齐后公告数从 112 条 / 31 包降到 12 条 / 5 包、critical 归零；剩下的 high/moderate 里，`braces` 与 `sprintf-js` 上游根本没有修复版本，`nanoid`（`@excalidraw` 内部的 3.x/4.x 副本）、`katex`、`fflate`（`three-stdlib` 内部）必须先升级被刻意 pin 的直接依赖才能修，所以拦 high 需要一张长期 ignore 名单，收益不抵维护成本。
 - 新增 `.github/scripts/check-env-docs.py` 挂到 backend job：后端读到的每个 `CANVAS_*` 必须出现在 `.env.example`、`README.md`、`AGENTS.md`、`SECURITY.md` 或 `docs/**` 里。
 - dependabot 补齐 `github-actions`（`/`）与 `docker`（`/`、`/backend`、`/yingce-agent`），并把 `backend/agent-runtime/pi` 的 npm 依赖纳入。
 
@@ -49,7 +49,7 @@ Status: implemented
 - **收益**：`work` 的每次推送都会得到后端测试、前端类型/构建/测试/E2E、支付插件产物、部署配置、密钥与依赖漏洞的机械判定；打包错误与新增测试的类型错误在推送阶段就被拦住；`main` 与发布流程的行为完全不变。
 - **代价与已知上限**：
   - 存量测试类型欠账 163 项 / 56 个文件仍在树里，棘轮只保证新增不增长；编辑旧测试文件不会被强制修（这是有意的：单文件平均 1.25 个错误，强制修会让改一行测试变成修一整片）。
-  - **govulncheck 与 `bun audit` 只报告不拦截，属于会腐烂的门。** 重访信号：Go 工具链升到 1.26、或 npm 依赖完成一轮升级后，删掉 `continue-on-error` 改为拦截。
+  - **npm 侧只拦 critical，high/moderate 靠报告与 dependabot。** 这一档缺口是已知的：12 条残留里没有可用的自动化修法。重访信号：`bun` 升到真正支持嵌套 override 的版本（1.3.9 会**静默忽略** `parent>dep` 与 `pkg@range` 两种写法——实测 package.json 里写完、`bun install` 报 `no changes`、lock 仍是 `lockfileVersion 1`），或 `@excalidraw` 升级后，把拦截线提到 high。
   - compose 校验用占位值，只能证明结构与插值成立，不证明镜像、digest 真实存在或服务能起。
   - `--add-host backend:127.0.0.1` 只让 `nginx -t` 通过，不代表运行时 DNS 正确。
   - 每次 push 增加约 `bun run build` 5s、部署校验数十秒、govulncheck 40s + 工具下载、gitleaks 数秒。
@@ -60,7 +60,8 @@ Status: implemented
 - 触发与结构：`python3 -c "import yaml..."` 解析 `quality.yml` 得 `on = [pull_request, push, workflow_call]`，`push.branches = [work]`，jobs 为 backend / deploy-config / vulnerability-scan / payment-plugins / web；所有 `run` 片段逐个 `bash -n` 通过。
 - 部署面：占位 env 下 5 份 compose 与 2 个叠加组合 `config --quiet` 全部退出 0；`nginx:1.27-alpine` + `--add-host backend:127.0.0.1` 跑 `nginx -t` 输出 `test is successful`（不带 `--add-host` 会 `host not found in upstream "backend"`）。
 - 密钥扫描：`gitleaks git --log-opts="upstream/main..work"` → 15 commits、237KB、565ms、no leaks；base 解析的四种输入（有效 base / 空 / 全零 / 不在本地）各自落到正确的 range。
-- 依赖扫描：`CGO_ENABLED=0 go run golang.org/x/vuln/cmd/govulncheck@latest ./...` 36s 输出 5 个可达漏洞（`x/net` 4、`x/text` 1），并给出修复版本；`BUN_CONFIG_REGISTRY=https://registry.npmjs.org bun audit` 输出 112 条公告（2 critical / 50 high / 51 moderate / 9 low），两者都是只报告模式的依据。
+- 依赖扫描（本轮两个方向的实测值）：升级前 `govulncheck` 在 go1.25 下报 5 个可达漏洞（`x/net` 4、`x/text` 1），升级后输出 `No vulnerabilities found`；`bun audit` 从 112 条（2 critical / 50 high / 51 moderate / 9 low，31 包）降到 12 条（0 critical / 7 high / 4 moderate / 1 low，5 包 = `braces`、`fflate`、`katex`、`nanoid`、`sprintf-js`）。前端在升级后重新验证：`bun install --frozen-lockfile`、`bun run typecheck`、`bun run lint`、`bun run build`、`bun run test`（2330 通过 / 0 失败）、`bun run test:previs:e2e`（65 断言 / 0 失败）全部通过。
+- 清理方式与残留清单：`package.json` 的 `overrides` 由 6 项非 tiptap 条目扩到 25 项（补齐 `undici`、`fast-uri`、`@xmldom/xmldom`、`postcss`、`dompurify`、`mermaid`、`lodash-es`、`gh-pages` 等已过期的 pin），直接依赖升 `axios ^1.20.0`、`react-router ^8.3.0`、`@tiptap/* 3.30.5`；`nanoid` 的 3 个传递副本（3.3.3 / 3.3.16 / 4.0.2）在 bun 1.3.9 下无法定点修复，已在 `package.json` 里移除无效的嵌套规则（不留假承诺）。
 - 类型棘轮：新增一个干净测试文件 → 输出 `1 new test file(s) type-checked clean; legacy backlog: 163 error(s) in 56 file(s)` 并退出 0；把该文件写成类型错误 → 打印 `TS2322` 并退出 1；未新增测试文件时快速返回不跑 tsc。
 - 测试去重与运行时：`PATH` 指向 bun 1.3.9 时 `bun run test` 只输出一行 `Ran 2330 tests across 322 files`（2330 pass / 0 fail），改动前 `pretest` 会先额外跑 9 个文件。
 - 环境变量门：`python3 .github/scripts/check-env-docs.py` 正向输出 `ok: 21 CANVAS_* env var(s) ... are documented`；删掉 `.env.example` 里一行登记后报出 `CANVAS_CHANNEL_CIRCUIT_SECONDS` 并退出 1。

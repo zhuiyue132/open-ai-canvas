@@ -151,21 +151,22 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.9
-      # 依赖里的已披露漏洞原本无人工检查（只有 dependabot 提 PR）。
-      #
-      # 目前是**只报告不拦截**：go1.25 下已确认 5 个可达漏洞，修掉它们需要把工具链升到
-      # Go 1.26（golang.org/x/net v0.60.0 要求 go >= 1.26.0），那是一次独立的工具链迁移。
-      # 退出条件：工具链升到 Go 1.26 且 `govulncheck ./...` 输出 "No vulnerabilities found"
-      # 后，把 continue-on-error 删掉，改为拦截。
-      - name: Scan Go dependencies for known vulnerabilities (report only)
-        continue-on-error: true
+      # 依赖里的已披露漏洞原本无人工检查（只有 dependabot 提 PR）。这里只拦**可达**漏洞：
+      # govulncheck 在 Go 1.26 + golang.org/x/net v0.60.0 + x/text v0.42.0 下输出
+      # "No vulnerabilities found"，此前 go1.25 时代的 5 个可达漏洞由那次升级消除。
+      - name: Scan Go dependencies for reachable vulnerabilities
         working-directory: backend
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
-      # npm 侧同样只报告：实测 112 条公告（2 critical / 50 high / 51 moderate / 9 low），含直接依赖
-      # react-router 的 RSC CSRF 绕过。修它们是一次依赖大版本升级，不属于本次范围。
-      # 退出条件：`bun audit` 输出 "No vulnerabilities found" 后删掉 continue-on-error。
+      # npm 侧分两层。拦截层只针对 critical：一轮 overrides 补齐后 112 条降到 12 条、critical 已归零，
+      # 而剩下的 high/moderate 里有上游根本没有修复版本的（braces、sprintf-js）和必须动被刻意 pin 的
+      # 直接依赖才能修的（nanoid 在 @excalidraw 内部的 3.x/4.x 副本、katex、three-stdlib 的 fflate），
+      # 拦 high 需要一张长期 ignore 名单。重访信号：bun 升到支持嵌套 override 的版本（1.3.9 会静默忽略
+      # `parent>dep` 与 `pkg@range` 两种写法），或 @excalidraw 升级后。
       # 注意：本步需要 npm 公告接口，本地镜像（如 npmmirror）会返回 404，CI 用默认 registry 可正常查。
-      - name: Scan JS dependencies for known vulnerabilities (report only)
+      - name: Fail on critical JS dependency vulnerabilities
+        working-directory: web
+        run: bun audit --audit-level=critical
+      - name: Report remaining JS dependency vulnerabilities
         continue-on-error: true
         working-directory: web
         run: bun audit
