@@ -15,10 +15,18 @@ Status: implemented
 ## Decision
 
 - `backend/server` 用 `git rm --cached` 解绑版本控制（磁盘文件保留），`.gitignore` 与 `.dockerignore` 的规则由 `backend/cmd/server/server` 改为 `backend/server`。上游若将来删除该文件，双方都是删除，合并不会冲突。
-- 新增 `.tool-versions` 声明 `bun 1.3.9`、`nodejs 22.19.0`、`golang 1.25.0`（与 CI、镜像一致）；`docker-compose.dev.yml` 的 `oven/bun:1.3.13` 改回 `1.3.9`。版本不一致的可观察症状写进 `AGENTS.md` 第 8 节，指向具体用例与 `bun --version` 排查动作。
+- 新增 `.tool-versions` 声明 `bun 1.3.9`、`nodejs 22.19.0`、`golang 1.26.0`（与 CI、镜像一致）；`docker-compose.dev.yml` 的 `oven/bun:1.3.13` 改回 `1.3.9`。版本不一致的可观察症状写进 `AGENTS.md` 第 8 节，指向具体用例与 `bun --version` 排查动作。
 - 8 个未登记的环境变量写进 `.env.example`：可选开关用注释行并带上默认值与取值区间（`env()`/`envInt()` 把空值视为未设置，所以占位值可以是注释），`CANVAS_DATABASE_DRIVER` 与两个目录覆盖也一并登记。新增 `.github/scripts/check-env-docs.py` 在 CI 拦截后续漏登记，作用域为 `backend/` 下非测试文件，排除宿主机更新器（`cmd/host-updater`、`internal/hostupdate`、`internal/updaterclient`）——那里的 `CANVAS_UPDATER_*` 是安装脚本与自更新服务之间的内部契约，不是用户配置面。
 - `web/package.json` 的 `pretest` 改名为 `test:gate`，`bun run test` 只跑一次；需要快速回归时可显式 `bun run test:gate`。
 - `web/vercel.json` 保留在树中，但在 `docs/AGENT_LOCAL_DEVELOPMENT.md` 第 6 节标注为上游遗留、本仓库不使用，部署只走 Docker + nginx。
+
+## Go 1.26 工具链迁移
+
+`golang.org/x/net` 的 4 个可达漏洞只有 `v0.60.0` 修得了，而该版本 `requires go >= 1.26.0`；`x/text` 同理（`v0.42.0`）。因此 `backend/go.mod` 的 `go` 指令升到 1.26.0，并同步 `x/net v0.60.0`、`x/text v0.42.0` 及被拉动的 `x/crypto v0.57.0`、`x/sync v0.23.0`、`x/sys v0.48.0`；镜像与文档同批更新：`backend/Dockerfile`（两个 stage）、`backend/Dockerfile.dev`、`docker-compose.dev.yml` 的 `GO_IMAGE`、`.tool-versions`、`README.md`、`AGENTS.md`。CI 通过 `go-version-file: backend/go.mod` 自动跟随。
+
+上游近 30 天改过 `backend/go.mod` 4 次、改过 `backend/Dockerfile` 与 compose 共 12 次，所以这些行会在同步时反复成为冲突点；判断依据是它们都属于"取更高版本即可"的冲突，代价可控。上游自己升到 1.26 后，本仓库这几处改动会被上游版本取代（`git merge` 用上游内容即可）。
+
+验证方式是容器内跑真实套件（本机 CGO 因 Xcode 许可不可用）：`golang:1.26-alpine` + 挂载仓库与 module 缓存，`go test -timeout=20m ./...` 在 arm64/linux 上跑通；期间出现过一次 `internal/app` 的偶发失败（`cloud_agent_media_writeback_test.go:131` 报乐观锁冲突"数据已被更新，请刷新后重试"），单测重跑 3 次全过，判定为既有的偶发用例而非升级引入。
 
 ## Alternatives considered
 
@@ -34,7 +42,8 @@ Status: implemented
 - **代价与已知上限**：
   - `backend/server` 的文件仍在磁盘上（63MB），需要手工删除才回收空间。
   - 上游若修改 `backend/server`，本次删除会变成 modify/delete 冲突；判断依据是上游最近一次改动只发生在 `chore: commit workspace updates` 这类整树提交里，风险低。
-  - `.tool-versions` 在没有 asdf/mise 的机器上不产生任何约束，只作为声明与 CI/镜像的对照。
+  - `.tool-versions` 在没有 asdf/mise 的机器上不产生任何约束，只作为声明与 CI/镜像的对照；Go 版本的实际约束来自 `go.mod` 的 `go` 指令与镜像 tag。
+  - Go 1.26 的迁移在上游跟进前一直是同步冲突点（见上节），且 `go.mod` 里 x/net 等行会和上游的 dependabot 分支争同一处。
   - `check-env-docs.py` 只校验"名字出现过"：文档里写错默认值或区间它不会发现；新增读取 helper（如新的 `envX`）也需要同步更新脚本的正则，否则会漏检。
   - `test:gate` 不再自动执行，忘记单独跑它只会损失"先失败在关键回归上"的顺序，覆盖范围不变。
   - `web/vercel.json` 的不支持状态只写在二开本地文档里，上游文档不会反映。
