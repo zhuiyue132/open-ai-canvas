@@ -163,7 +163,7 @@ cd web && bun run dev
 - 非平凡改动必须留一篇笔记：改行为、改架构、改跨文件契约、改流程与工具链、改测试策略、改落盘/网络/配置格式，或在技术方案之间做选择、推翻既有决定。纯排版、样式调整、依赖补丁、发版打标和单模块内看 diff 即懂的修复不写。计划与待办落 `.agents/notes/proposed/`。
 - 三线校验从仓库根目录执行：`verify-agent-note-tree.ts`、`verify-agent-note-format.ts`、`verify-archived-agent-notes.ts`，均在 `.agents/skills/write-notes-like-deepseek/scripts/` 下；CI 门见 `.github/workflows/verify-notes.yml`。
 - `.agents/notes/` 下不建集中索引（`INDEX.md` 会让树校验直接报错），检索用 `rg` 与分类树。决定翻转要新开一篇并互链，禁止把已有笔记的 `## Decision` 段改写成反面；路径、符号、默认值这类事实就地更新。
-- `docs/adr/`、`docs/design/`、`docs/plans/`、`docs/superpowers/specs/` 是上游遗产：只读、不作为真相源，改动只来自上游合并。需要其中的事实时按路径引用，不复制正文。
+- `docs/adr/`、`docs/design/`、`docs/plans/`、`docs/superpowers/specs/` 是上游遗产：只读、不作为真相源，改动只来自上游合并。需要其中的事实时按路径引用，不复制正文。仍以规范或在执行计划身份被引用的活文档除外：`docs/plans/ui-design-system.mdx`（组件编写规范与 backlog）与 `docs/plans/ui-kit-rollout-plan.mdx`（自研 UI 组件层实施计划）按参考类文档维护，可随本仓库改动。
 - 功能、代码地图、待测试维护在 `docs/content/docs/overview/features.mdx`、`docs/content/docs/backend/code-map.mdx`、`docs/content/docs/progress/pending-test.mdx`；接口与协议参考文档为 `docs/content/docs/backend/http-api.mdx`、`docs/content/docs/backend/backend-database.mdx`、`backend/internal/protocol/docs/*.md`、`plugin-packages/*/docs/interface.md`、`backend/builtin/*/SKILL.md`。已实现但未由用户确认的变化先写入 `pending-test.mdx`。
 - API、数据表、SSE、资源存储、部署或安全边界变化时同步对应参考文档；不要只改代码和根 README。
 - 根 `README.md` 只保留项目定位、能力概览、快速开始、架构概览、部署、安全、参考文档入口和许可证；`README.md` 与 `docs/index.md` 的导航只指向参考类文档，出现失效链接时同批修复。

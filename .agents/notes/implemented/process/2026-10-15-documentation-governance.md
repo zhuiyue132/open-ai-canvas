@@ -12,7 +12,7 @@ Status: implemented
 
 `.agents/notes/` 是决策记录的唯一真相源，路径即身份：`{lifecycle}/{class}/yyyy-mm-dd-topic.md`，`lifecycle` 取 `proposed`、`implemented`、`rejected`、`archived`，`class` 取 `feature`、`bug-fix`、`simplification`、`architecture`、`process`、`testing`。写入门槛、目录扫描、相对链接、头块与必备节由 `.agents/skills/write-notes-like-deepseek/` 定义，该 skill 随仓库分发（项目级安装）。
 
-`docs/adr/`、`docs/design/`、`docs/plans/`、`docs/superpowers/specs/` 是上游遗产：只读，新决策不写入，也不作为真相源；文件保留在树中，改动只来自上游合并。需要引用其中的事实时按路径引用，不复制正文。
+`docs/adr/`、`docs/design/`、`docs/plans/`、`docs/superpowers/specs/` 是上游遗产：只读，新决策不写入，也不作为真相源；文件保留在树中，改动只来自上游合并。需要引用其中的事实时按路径引用，不复制正文。例外是仍以规范或在执行计划身份被引用的活文档：`docs/plans/ui-design-system.mdx`（组件编写规范与 backlog）与 `docs/plans/ui-kit-rollout-plan.mdx`（自研 UI 组件层实施计划）按参考类文档维护，可随本仓库改动。
 
 参考类文档继续按原约定维护，它们不属于决策笔记：`docs/content/docs/overview/features.mdx`、`docs/content/docs/backend/code-map.mdx`、`docs/content/docs/progress/pending-test.mdx`、`docs/content/docs/backend/http-api.mdx`、`docs/content/docs/backend/backend-database.mdx`，以及协议文档 `backend/internal/protocol/docs/*.md`、插件接口文档 `plugin-packages/*/docs/interface.md`、技能库 `backend/builtin/*/SKILL.md`。
 
