@@ -1,0 +1,42 @@
+name: Verify Agent Notes
+
+# 决策笔记闸门：校验 .agents/notes/ 的目录层级、class、文件名、头块、必备节、备选节与归档封印。
+# 约定与写入门槛见 .agents/skills/write-notes-like-deepseek/SKILL.md 与 AGENTS.md 第 9 节。
+on:
+  pull_request:
+  push:
+    branches:
+      - work
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-notes-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # 归档封印要跟变更前的提交做“只增不改”比对，需要完整历史。
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+
+      - name: Verify note tree, format, and archive seals
+        env:
+          # 干净检出时 HEAD 是空操作，因此跟变更前的提交比对：PR 用 base，push 用 before。
+          # 新分支推送的 before 是全零，git show 会失败，脚本会跳过“只增不改”，封印对磁盘的校验仍然执行。
+          AGENT_NOTE_ARCHIVE_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          skill=.agents/skills/write-notes-like-deepseek/scripts
+          bun run "$skill/verify-agent-note-tree.ts"
+          bun run "$skill/verify-agent-note-format.ts"
+          bun run "$skill/verify-archived-agent-notes.ts"
