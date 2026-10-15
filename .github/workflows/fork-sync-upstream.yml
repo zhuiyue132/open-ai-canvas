@@ -2,7 +2,7 @@ name: Fork sync upstream
 
 # 二开仓库（本仓库 = zhuiyue132/open-ai-canvas）的上游同步：
 #   main = ddcat-ai/open-ai-canvas 的 main 纯镜像，禁止本地提交，只允许快进；
-#   work = 二开主线，定时把上游 main 合并（或 rebase）进来。
+#   work = 二开主线，定时把上游 main 合并进来（work 受 ruleset 保护：只允许快进，禁止强推）。
 #
 # 本文件必须存在于默认分支（work）上，schedule 才会生效：
 # https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows
@@ -19,11 +19,10 @@ on:
   workflow_dispatch:
     inputs:
       work_mode:
-        description: work 分支同步方式
+        description: work 分支同步方式（work 已受 ruleset 保护，禁止强推，因此只保留 merge 与 none）
         type: choice
         options:
           - merge
-          - rebase
           - none
         default: merge
       push_tags:
@@ -142,23 +141,14 @@ jobs:
               exit 1
             fi
           }
-          if [[ "$WORK_MODE" == "rebase" ]]; then
-            if ! git rebase refs/remotes/upstream/main; then
-              git diff --name-only --diff-filter=U > /tmp/conflict-files.txt || true
-              git rebase --abort
-              echo "conflict=true" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            push_work git push --force-with-lease origin HEAD:refs/heads/work
-          else
-            if ! git merge --no-edit refs/remotes/upstream/main; then
-              git diff --name-only --diff-filter=U > /tmp/conflict-files.txt || true
-              git merge --abort
-              echo "conflict=true" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            push_work git push origin HEAD:refs/heads/work
+          # 只走 merge：work 上的 ruleset 禁止非快进推送，rebase + --force-with-lease 会被拒绝。
+          if ! git merge --no-edit refs/remotes/upstream/main; then
+            git diff --name-only --diff-filter=U > /tmp/conflict-files.txt || true
+            git merge --abort
+            echo "conflict=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          push_work git push origin HEAD:refs/heads/work
           echo "conflict=false" >> "$GITHUB_OUTPUT"
           echo "sha=$(git rev-parse --short=8 HEAD)" >> "$GITHUB_OUTPUT"
 

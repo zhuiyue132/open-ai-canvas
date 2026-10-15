@@ -45,9 +45,19 @@ git remote set-url --push upstream no_push
 | 分支 | 角色 | 允许的操作 |
 | --- | --- | --- |
 | `main` | 上游 `main` 的**纯镜像** | 只允许快进对齐上游；**永不承载本地提交** |
-| `work` | 二开主线（fork 默认分支） | 日常开发、合并、推送都在这里 |
+| `work` | 二开主线（fork 默认分支） | 日常开发、合并、推送都在这里；**只允许快进推送**，强推由 ruleset 拒绝 |
 
-二开工作流：从 `work` 切特性分支 → PR/合并回 `work` → 需要发版时在 `work` 打 `v*` tag。
+二开工作流：从 `work` 切特性分支 → PR/合并回 `work` → 需要发版时在 `work` 打 `fork-v*` tag。
+
+`work` 上挂着仓库级 ruleset「work 主线保护」（`non_fast_forward`，只作用于 `refs/heads/work`）：
+任何非快进推送都会被服务端拒绝，包括 `git push --force` 与同步工作流的 `--force-with-lease`。
+重写历史属于人工介入场景，需要临时停用规则：
+
+```bash
+ruleset=$(gh api repos/zhuiyue132/open-ai-canvas/rulesets --jq '.[] | select(.name=="work 主线保护") | .id')
+gh api -X PUT "repos/zhuiyue132/open-ai-canvas/rulesets/$ruleset" -f enforcement=disabled   # 用完改回 active
+```
+注意：`git push --dry-run --force` 不校验 ruleset（本地就短路了），判断规则是否生效要用真实推送。
 
 不变式（同步工作流和本地钩子都会校验）：
 
@@ -70,7 +80,7 @@ git push --force-with-lease origin main:main
 `.github/workflows/fork-sync-upstream.yml`（位于 `work`，因此也是默认分支上的 workflow）：
 
 - 触发：`cron: 0 18 * * *`（UTC 18:00 = 北京次日 02:00），以及手动 `workflow_dispatch`。
-- 手动触发可选参数：`work_mode`（`merge` 默认 / `rebase` / `none`）、`push_tags`（默认 true）。
+- 手动触发可选参数：`work_mode`（`merge` 默认 / `none`）、`push_tags`（默认 true）。`rebase` 模式已移除：它会改写 `work` 历史，被 ruleset 拒绝。
 - 步骤与安全阀：
   1. **Preflight**：确认上游自带的 `publish-images.yml` 仍为 `disabled_manually`，否则中止本次同步。上游那份流水线按 `push: main` 和 `tags: v*` 触发，在 fork 里会往 `ghcr.io/zhuiyue132/*` 重复构建镜像，必须在 fork 中保持禁用（`gh workflow disable publish-images.yml -R zhuiyue132/open-ai-canvas`）。
   2. **Mirror main**：`git push origin upstream/main:main`，不带 `--force`，`main` 一旦被污染就报错停摆而不是覆盖。
@@ -123,7 +133,7 @@ git hook run pre-commit            # 自检：在 main 上应报错退出
 
 ## 6. 常见坑
 
-- **不要在 `work` 上强推**。`rebase` 同步模式（`work_mode=rebase`）会用 `--force-with-lease` 推送，其他人本地会需要 `git reset` 才能继续；多人/多 Agent 并行时保持默认 `merge` 模式。
+- **不要在 `work` 上强推**（现在会被 ruleset 拒绝，见 §2）。上游同步固定走 `merge`：`rebase` 需要改写历史，规则会直接拒绝；若工作区已被 rebase 过，先 `git reset --hard origin/work` 回到远端状态再合并。
 - **`main` 的跟踪关系**：本地 `main` 跟踪 `origin/main`（fork 的镜像分支），`git pull` 拿到的是 fork 的镜像，不是上游；要拉上游必须显式 `git fetch upstream`。
 - **不要在 fork 里复用上游的发布流水线**。`publish-images.yml` 已禁用（同步工作流的 preflight 会强制保持 `disabled_manually`），二开发布需要一份独立名字的工作流，见 §7。
 - **上游 tag 与二开 tag 不要同名**。同步工作流会把上游 `v*` tag 推到这个仓库，二开自己的版本 tag 用 `fork-v*`，见 §7。

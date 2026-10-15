@@ -11,7 +11,7 @@
 | 单元 | 技术栈 | 入口 | 责任 |
 | --- | --- | --- | --- |
 | `web/` | Vite、React 19、TypeScript、React Router、Ant Design、Tailwind、Zustand、TanStack Query | `web/src/application.tsx`、`web/src/router.tsx` | 工作区 UI、画布交互、浏览器缓存、API 调用和模型协议适配 |
-| `backend/` | Go 1.25、Gin、GORM、SQLite/PostgreSQL、Redis 协调 | `backend/cmd/server/main.go` | 登录、权限、业务 API、任务队列、资源、模型中转和后台管理 |
+| `backend/` | Go 1.26、Gin、GORM、SQLite/PostgreSQL、Redis 协调 | `backend/cmd/server/main.go` | 登录、权限、业务 API、任务队列、资源、模型中转和后台管理 |
 | `docs/` | Markdown、MDX | `docs/content/docs/` | 参考类专题文档（功能、代码地图、API、数据库、部署、插件）；决策记录在 `.agents/notes/`；本仓库不含文档站构建配置 |
 
 根目录的 `Dockerfile` 构建前端静态镜像；`nginx.conf` 托管 SPA 并代理后端。`docker-compose.dev.yml` 是源码热更新开发编排，根 `docker-compose.yml` 和 `docker-compose.local.yml` 是本地构建运行。服务器默认使用官方 Release 镜像、`docker-compose.deploy.yml`（PostgreSQL、Redis、独立 Agent、迁移服务）和宿主机 Host Updater，详细说明见根 `README.md` 的「服务器部署」段与 `docs/content/docs/backend/system-update.mdx`。
@@ -142,6 +142,7 @@ cd web && bun run dev
 - 生产 Compose 使用 `docker-compose.deploy.yml`（PostgreSQL、Redis、migrate、yingce-agent、backend、web）。源码构建可叠加 `docker-compose.build.yml`，但本地镜像不由 Host Updater 管理；`scripts/install-server.sh` 不安装更新器，不能当作在线更新安装入口。`docker-compose.server.yml` 是源码构建的服务器编排（公开 web 端口并自建镜像），与 §1 的本地编排不是同一件事。
 - 二开部署不要用 README 的一键命令：`scripts/install-server-image.sh` 的默认镜像仓库与 Compose 都指向上游，装出来的是上游代码且不会报错。改走 `scripts/fork-deploy-image.sh`，身份约定见 `docs/AGENT_LOCAL_DEVELOPMENT.md` 第 7 节。公网只暴露 web 的 `CANVAS_HTTP_PORT`（默认 `3000`），backend `8080` 留在 Compose 网络内。
 - 诊断已有部署时，依据实际 Compose 文件、容器镜像、数据库驱动、数据挂载和 Host Updater 状态分别报告。源码构建不等于 local，SQLite 不证明使用了 `docker-compose.local.yml`，自定义文件名也不证明采用了任何仓库编排。已有 SQLite/自定义部署须先备份、迁移和验证，再转为受管部署；不要直接覆盖原 Compose 或数据卷。
+- `work` 受仓库 ruleset「work 主线保护」约束：只允许快进推送，`git push --force` 会被服务端拒绝；需要重写历史时先按 `docs/AGENT_LOCAL_DEVELOPMENT.md` 第 2 节临时停用规则。
 - 默认不启动 dev server；只有用户明确要求浏览器预览或联调时才启动，并先确认端口、数据目录和现有进程。
 - 健康检查只能证明入口可用，不能替代登录、SSE、任务生成和资源访问验证。
 
@@ -151,7 +152,7 @@ cd web && bun run dev
 
 - 前端：`cd web && bun run build`；专项测试用 `bun test ...`，本地先跑关键回归可 `bun run test:gate`。UI 退场规则用 `bun run lint`（只禁 antd Empty 和静态 `Modal.confirm`，不是风格检查）。
 - 前端测试类型：新增测试文件必须类型干净，由 `cd web && bun run typecheck:test:new` 把关；`bun run typecheck:test` 会列出全部存量欠账（当前仍有几十个文件待清，见笔记）。
-- 本地工具链版本由 `.tool-versions` 声明（bun 1.3.9、Node 22.19.0、Go 1.25.0），与 CI 和镜像一致。Bun 低于 1.3.9 时 `TextDecoder` 不支持 gb18030，`web/test/canvas-document.test.ts` 的回退用例会失败：先核对 `bun --version`，不要把运行时差异当成代码缺陷。
+- 本地工具链版本由 `.tool-versions` 声明（bun 1.3.9、Node 22.19.0、Go 1.26.0），与 CI 和镜像一致。Bun 低于 1.3.9 时 `TextDecoder` 不支持 gb18030，`web/test/canvas-document.test.ts` 的回退用例会失败：先核对 `bun --version`，不要把运行时差异当成代码缺陷。
 - 后端：`cd backend && go test ./...`；涉及 PostgreSQL、资源、任务或权限时补对应集成/冒烟路径。macOS 需要可用的 CGO 工具链（项目直接依赖需要 cgo 的 sqlite 驱动），工具链不可用时整个套件会以 `runtime/cgo` 报错集体 `build failed`，不是代码问题。
 - 部署面：改动 `docker-compose*.yml` 或 `nginx.conf` 后，本地先跑 `docker compose --env-file <占位 env> -f <file> config --quiet` 与 `docker run --rm --add-host backend:127.0.0.1 -v $PWD/nginx.conf:/etc/nginx/conf.d/default.conf:ro nginx:1.27-alpine nginx -t`。
 - 配置面：新增后端读取的 `CANVAS_*` 环境变量时，同步写进 `.env.example`（默认值、取值区间、影响），`python3 .github/scripts/check-env-docs.py` 会拦截漏登记。
