@@ -97,6 +97,8 @@ describe("cloud canvas agent workflow builder", () => {
         const after = applyCanvasOperations(existing, ops);
         expect(after.connections).toHaveLength(1);
         expect(after.connections[0]).toMatchObject({ fromNodeId: "asset-1", toNodeId: operationId(ops[0]) });
-        expect(after.nodes[1]?.metadata?.referenceNodeIds).toEqual(["asset-1"]);
+        // buildCanvasWorkflowOps 通过展开写入 metadata.referenceNodeIds，而 CanvasNodeMetadata 只声明了
+        // referenceAssetNodeIds（src 侧字段名漂移）；断言沿用运行期实际字段。
+        expect((after.nodes[1]?.metadata as { referenceNodeIds?: string[] } | undefined)?.referenceNodeIds).toEqual(["asset-1"]);
     });
 });

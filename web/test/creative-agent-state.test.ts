@@ -103,7 +103,8 @@ describe("创作方案执行合同", () => {
         const nodes = applyCanvasOperations(empty, creativeProposalOps("run", proposal, empty, config)).nodes;
         expect(nodes[0]!.metadata?.assetId).toBe("asset");
         expect(nodes[0]!.metadata?.status).toBe("success");
-        expect(nodes[1]!.metadata?.referenceNodeIds).toEqual([nodes[0]!.id]);
+        // 创作方案生成的节点沿用运行期的 metadata.referenceNodeIds（类型上叫 referenceAssetNodeIds）。
+        expect((nodes[1]!.metadata as { referenceNodeIds?: string[] } | undefined)?.referenceNodeIds).toEqual([nodes[0]!.id]);
     });
     test("模型推断不能降低程序已确认字段的状态", () => {
         const known = { seconds: { value: 15, source: "user" as const, status: "confirmed" as const } };
