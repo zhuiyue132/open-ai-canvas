@@ -35,22 +35,12 @@ describe("storyboardRowsFromTask", () => {
             rows: [
                 {
                     shotNumber: 1,
-                    characters: [
-                        { characterName: " 刘备 ", characterAssetId: "asset-liu", characterVersionId: "v-1", characterDescription: "织席贩履" },
-                        { name: "关羽" },
-                        "   ",
-                        "",
-                        { characterName: "" },
-                        null,
-                    ],
+                    characters: [{ characterName: " 刘备 ", characterAssetId: "asset-liu", characterVersionId: "v-1", characterDescription: "织席贩履" }, { name: "关羽" }, "   ", "", { characterName: "" }, null],
                 },
             ],
         };
         const task = storyboardTask(JSON.stringify({ mode: "text", text: JSON.stringify(payload) }));
-        expect(storyboardRowsFromTask(task).rows[0].characters).toEqual([
-            { characterName: "刘备", characterAssetId: "asset-liu", characterVersionId: "v-1", characterDescription: "织席贩履" },
-            { characterName: "关羽" },
-        ]);
+        expect(storyboardRowsFromTask(task).rows[0].characters).toEqual([{ characterName: "刘备", characterAssetId: "asset-liu", characterVersionId: "v-1", characterDescription: "织席贩履" }, { characterName: "关羽" }]);
     });
 
     test("text 内层被 ```json 代码块包裹时仍可解析", () => {
