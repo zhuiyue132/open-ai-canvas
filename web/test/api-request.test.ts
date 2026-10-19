@@ -27,8 +27,9 @@ describe("backend API request error semantics", () => {
         const thrown = await request(Promise.reject(axiosError)).catch((error) => error);
 
         expect(thrown).toBeInstanceOf(ApiError);
-        expect(thrown).toMatchObject({ status: 429, code: 42901, reason: "rate_limited", message: "请求过于频繁，请稍后重试", retryable: true, retryAfterMs: 60_000 });
-        expect(thrown.cause).toBe(axiosError);
+        const apiError = thrown as ApiError;
+        expect(apiError).toMatchObject({ status: 429, code: 42901, reason: "rate_limited", message: "请求过于频繁，请稍后重试", retryable: true, retryAfterMs: 60_000 });
+        expect(apiError.cause).toBe(axiosError);
     });
 
     test("replaces a bare proxy 502 with a user-facing retry message", async () => {
@@ -52,8 +53,9 @@ describe("backend API request error semantics", () => {
         const thrown = await request(Promise.reject(axiosError)).catch((error) => error);
 
         expect(thrown).toBeInstanceOf(ApiError);
-        expect(thrown).toMatchObject({ message: "Network Error", retryable: true });
-        expect(thrown.cause).toBe(axiosError);
+        const apiError = thrown as ApiError;
+        expect(apiError).toMatchObject({ message: "Network Error", retryable: true });
+        expect(apiError.cause).toBe(axiosError);
     });
 
     test("http.get unwraps the same backend envelope", async () => {
@@ -87,10 +89,12 @@ describe("backend API request error semantics", () => {
     });
 
     test("quota exceeded is not retryable", async () => {
-        const thrown = await request(Promise.resolve({
-            data: { code: 40301, data: null, msg: "账号素材数量已达到 100 个上限", reason: "quota_exceeded" },
-            status: 403,
-        })).catch((error) => error);
+        const thrown = await request(
+            Promise.resolve({
+                data: { code: 40301, data: null, msg: "账号素材数量已达到 100 个上限", reason: "quota_exceeded" },
+                status: 403,
+            }),
+        ).catch((error) => error);
 
         expect(thrown).toBeInstanceOf(ApiError);
         expect(thrown).toMatchObject({ status: 403, code: 40301, reason: "quota_exceeded", retryable: false });
@@ -105,15 +109,17 @@ describe("backend API request error semantics", () => {
 
 describe("backend API list query params", () => {
     test("serializes pagination filters as camelCase pageSize keys", () => {
-        const query = serializeApiParams(compactApiParams({
-            page: 2,
-            pageSize: 40,
-            projectId: "project-1",
-            folderId: "folder-1",
-            mediaType: "image",
-            unitId: "unit-1",
-            q: "夜戏",
-        }));
+        const query = serializeApiParams(
+            compactApiParams({
+                page: 2,
+                pageSize: 40,
+                projectId: "project-1",
+                folderId: "folder-1",
+                mediaType: "image",
+                unitId: "unit-1",
+                q: "夜戏",
+            }),
+        );
 
         expect(query.get("page")).toBe("2");
         expect(query.get("pageSize")).toBe("40");

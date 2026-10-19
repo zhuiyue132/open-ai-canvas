@@ -148,7 +148,8 @@ test("Create durably correlates failures that happen before the first Runtime re
 });
 
 test("creation results hand off exact asset ids to one new canvas and consume the route once", async () => {
-    const module = await import("../src/lib/canvas/canvas-asset-handoff").catch(() => ({}));
+    // 导入失败时用同类型空壳，让下面的断言以「不是函数」而不是抛错的方式失败。
+    const module: typeof import("../src/lib/canvas/canvas-asset-handoff") = await import("../src/lib/canvas/canvas-asset-handoff").catch(() => ({}) as typeof import("../src/lib/canvas/canvas-asset-handoff"));
 
     expect(typeof module.creationCanvasHandoffPath).toBe("function");
     expect(typeof module.canvasAssetHandoffIds).toBe("function");
@@ -297,7 +298,7 @@ test("canvas handoff keeps its route when durable persistence fails", async () =
 });
 
 test("canvas handoff with no available assets remains retryable", async () => {
-    const module = await import("../src/lib/canvas/canvas-asset-handoff").catch(() => ({}));
+    const module: typeof import("../src/lib/canvas/canvas-asset-handoff") = await import("../src/lib/canvas/canvas-asset-handoff").catch(() => ({}) as typeof import("../src/lib/canvas/canvas-asset-handoff"));
     expect(typeof module.canvasAssetHandoffAttempt).toBe("function");
     expect(module.canvasAssetHandoffAttempt([], new URLSearchParams("mode=handoff&asset=missing&keep=1"))).toEqual({ kind: "retry", assetIds: ["missing"], payloads: [], missingAssetIds: ["missing"] });
 });

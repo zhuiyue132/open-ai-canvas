@@ -5,7 +5,8 @@ type Row = { id: string; role: string; title?: string; text: string; detail?: un
 
 const step = (id: string, title: string, text: string, detail: unknown = { eventType: "tool_completed" }): Row => ({ id, role: "tool", title, text, detail });
 const kinds = (rows: Row[]) => buildAgentFeedSegments(rows).map((segment) => segment.kind);
-const idsOf = (segment: ReturnType<typeof buildAgentFeedSegments<Row>>[number]) => (segment.kind === "operations" ? segment.items.map((item) => item.id) : [segment.item.id]);
+// 分段联合里 message 只有单条 item，operations/reasoning 都是 items 列表。
+const idsOf = (segment: ReturnType<typeof buildAgentFeedSegments<Row>>[number]) => (segment.kind === "message" ? [segment.item.id] : segment.items.map((item) => item.id));
 
 describe("Agent operation feed", () => {
     it("folds consecutive tool records into one segment keyed by the first step", () => {

@@ -192,6 +192,7 @@ describe("editor command registry (removeTrack)", () => {
         const base = golden.base;
         const target = base.tracks.find((t) => base.tracks.filter((x) => x.kind === t.kind).length === 1);
         expect(target).toBeTruthy();
+        if (!target) throw new Error("golden 里应有唯一轨道的 kind");
         expect(() => registry.apply(base, { op: "removeTrack", payload: { trackId: target.id } })).toThrow(/last/);
     });
 

@@ -62,7 +62,9 @@ describe("本地转换节点注册", () => {
         expect(findPendingMediaConversionInput(target.id, [input, conversion, target], connections)?.id).toBe(conversion.id);
         conversion.metadata = { mediaConversion: { schemaVersion: 1, operation: "grayscale", status: "completed", sourceNodeId: input.id, sourceFingerprint: "v1-unknown", resultStorageKey: "image:scope:result" } };
         expect(findPendingMediaConversionInput(target.id, [input, conversion, target], connections)?.id).toBe(conversion.id);
-        conversion.metadata.mediaConversion.sourceFingerprint = mediaConversionSourceFingerprint(input);
+        const conversionMetadata = conversion.metadata?.mediaConversion;
+        if (!conversionMetadata) throw new Error("转换节点应带 mediaConversion 元数据");
+        conversionMetadata.sourceFingerprint = mediaConversionSourceFingerprint(input);
         expect(findPendingMediaConversionInput(target.id, [input, conversion, target], connections)).toBeNull();
     });
 

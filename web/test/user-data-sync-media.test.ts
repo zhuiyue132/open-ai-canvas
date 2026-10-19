@@ -62,6 +62,7 @@ describe("画布资源引用同步", () => {
         const restored = await restoreRemoteTextNodeContents(project, async () => "从资源恢复的正文");
 
         expect(restored.nodes[0].metadata.content).toBe("从资源恢复的正文");
-        expect(restored.nodes[0].metadata.prompt).toBe("从资源恢复的正文");
+        // 恢复路径会把资源正文同时写入 prompt，夹具的 metadata 类型未声明该字段。
+        expect((restored.nodes[0].metadata as { prompt?: string }).prompt).toBe("从资源恢复的正文");
     });
 });

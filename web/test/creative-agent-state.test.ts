@@ -69,7 +69,9 @@ describe("创作方案执行合同", () => {
     });
     test("不能静默缩短已确认时长，也不能忽略模型输入上限", () => {
         const raw = shortFilm();
-        raw.generationItems[3]!.seconds = 10;
+        const videoItem = raw.generationItems[3];
+        if (!videoItem || !("seconds" in videoItem)) throw new Error("第 4 个生成项应为视频项");
+        videoItem.seconds = 10;
         const proposal = normalizeCreativeProposal(raw, "p", 1, config);
         expect(() => assertCreativeBriefSpecifications(proposal, { seconds: { value: 15, source: "user", status: "confirmed" } })).toThrow("15 秒");
         const limited = structuredClone(config);

@@ -144,7 +144,9 @@ describe("AI 审美批改报告解析", () => {
     });
 
     test("Prompt 包含 Rubric 版本、参考方法和构图意图约束", () => {
-        const systemText = artCritiqueMessages(input)[0].content;
+        const firstMessage = artCritiqueMessages(input)[0];
+        if (!firstMessage || !("content" in firstMessage)) throw new Error("首条消息应为带 content 的输入消息");
+        const systemText = firstMessage.content;
         expect(typeof systemText).toBe("string");
         expect(systemText).toContain(ART_CRITIQUE_RUBRIC_VERSION);
         expect(systemText).toContain("CADB / SAMP-Net");

@@ -152,9 +152,10 @@ describe("canvas node generation position mentions", () => {
 
     test("已有图片节点显式引用自身时作为图生图参考图提交", () => {
         const source = node("image-self", CanvasNodeType.Image, "data:image/png;base64,a");
-        source.metadata.composerContent = "将 @图片1 图片变清晰";
+        // node() 夹具恒带 metadata。
+        source.metadata!.composerContent = "将 @图片1 图片变清晰";
 
-        const context = buildNodeGenerationContext(source.id, [source], [], source.metadata.composerContent, []);
+        const context = buildNodeGenerationContext(source.id, [source], [], source.metadata!.composerContent, []);
 
         expect(context.referenceImages.map((image) => image.id)).toEqual([source.id]);
         expect(context.imageCount).toBe(1);

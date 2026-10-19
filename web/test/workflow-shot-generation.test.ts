@@ -128,8 +128,10 @@ test("shot generation submits historical character image, current voice and asse
     );
 
     expect(createdInput?.prompt).toContain("【资产参考】");
-    expect(createdInput?.input.referenceImages.map((reference) => reference.storageKey)).toEqual(["resource:character-image-1", "resource:scene-image-1"]);
-    expect(createdInput?.input.referenceAudios.map((reference) => reference.storageKey)).toEqual(["resource:character-audio-1"]);
+    // 提交到后端的 input 是线格式（referenceImages/referenceAudios 为引用数组），这里按该形状断言。
+    const submittedInput = createdInput?.input as { referenceImages?: Array<{ storageKey?: string }>; referenceAudios?: Array<{ storageKey?: string }> } | undefined;
+    expect(submittedInput?.referenceImages?.map((reference) => reference.storageKey)).toEqual(["resource:character-image-1", "resource:scene-image-1"]);
+    expect(submittedInput?.referenceAudios?.map((reference) => reference.storageKey)).toEqual(["resource:character-audio-1"]);
 });
 
 test("background generation submission returns after task creation without waiting", async () => {
