@@ -1,18 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-    canRedo,
-    canUndo,
-    createEditorHistory,
-    HISTORY_LIMIT,
-    pushEditorHistory,
-    redoEditorHistory,
-    undoEditorHistory,
-} from "../src/lib/timeline/editor-history";
+import { canRedo, canUndo, createEditorHistory, HISTORY_LIMIT, pushEditorHistory, redoEditorHistory, undoEditorHistory } from "../src/lib/timeline/editor-history";
 import type { TimelineProject } from "../src/types/timeline";
 
-function project(version: number): TimelineProject {
-    return { version, tracks: [], clips: [], durationMs: 0 };
+// version 现为字面量 2（只支持 v2 时间线），不能再当快照标记；改用 durationMs 承载递增标记。
+function project(mark: number): TimelineProject {
+    return { version: 2, tracks: [], clips: [], durationMs: mark };
 }
 
 describe("editor history", () => {
@@ -22,7 +15,7 @@ describe("editor history", () => {
         expect(canRedo(h)).toBe(false);
         expect(undoEditorHistory(h)).toBeNull();
         expect(redoEditorHistory(h)).toBeNull();
-        expect(h.current.version).toBe(1);
+        expect(h.current.durationMs).toBe(1);
     });
 
     test("undo walks back through pushed snapshots, then null at bottom", () => {
@@ -32,10 +25,10 @@ describe("editor history", () => {
         expect(canUndo(h)).toBe(true);
 
         h = undoEditorHistory(h)!;
-        expect(h.current.version).toBe(2);
+        expect(h.current.durationMs).toBe(2);
         expect(canRedo(h)).toBe(true);
         h = undoEditorHistory(h)!;
-        expect(h.current.version).toBe(1);
+        expect(h.current.durationMs).toBe(1);
         expect(canUndo(h)).toBe(false);
         expect(undoEditorHistory(h)).toBeNull();
     });
@@ -46,12 +39,12 @@ describe("editor history", () => {
         h = pushEditorHistory(h, project(3));
         h = undoEditorHistory(h)!;
         h = undoEditorHistory(h)!;
-        expect(h.current.version).toBe(1);
+        expect(h.current.durationMs).toBe(1);
 
         h = redoEditorHistory(h)!;
-        expect(h.current.version).toBe(2);
+        expect(h.current.durationMs).toBe(2);
         h = redoEditorHistory(h)!;
-        expect(h.current.version).toBe(3);
+        expect(h.current.durationMs).toBe(3);
         expect(canRedo(h)).toBe(false);
         expect(redoEditorHistory(h)).toBeNull();
     });
@@ -66,8 +59,8 @@ describe("editor history", () => {
         h = pushEditorHistory(h, project(99));
         expect(canRedo(h)).toBe(false);
         expect(redoEditorHistory(h)).toBeNull();
-        expect(h.current.version).toBe(99);
-        expect(h.undoStack.map((s) => s.version)).toEqual([1, 2]);
+        expect(h.current.durationMs).toBe(99);
+        expect(h.undoStack.map((s) => s.durationMs)).toEqual([1, 2]);
     });
 
     test("keeps at most HISTORY_LIMIT snapshots, dropping the oldest", () => {
@@ -77,9 +70,9 @@ describe("editor history", () => {
         }
         expect(h.undoStack).toHaveLength(HISTORY_LIMIT);
         // 最旧 5 个被丢弃：栈底应为 5，栈顶为 204
-        expect(h.undoStack[0].version).toBe(5);
-        expect(h.undoStack.at(-1)!.version).toBe(HISTORY_LIMIT + 4);
-        expect(h.current.version).toBe(HISTORY_LIMIT + 5);
+        expect(h.undoStack[0].durationMs).toBe(5);
+        expect(h.undoStack.at(-1)!.durationMs).toBe(HISTORY_LIMIT + 4);
+        expect(h.current.durationMs).toBe(HISTORY_LIMIT + 5);
 
         // 仍可连续撤销 200 次回到栈底
         let steps = 0;
@@ -88,7 +81,7 @@ describe("editor history", () => {
             steps++;
         }
         expect(steps).toBe(HISTORY_LIMIT);
-        expect(h.current.version).toBe(5);
+        expect(h.current.durationMs).toBe(5);
     });
 
     test("snapshots are structure-shared: push/undo/redo hand the exact object references", () => {

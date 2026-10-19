@@ -3,6 +3,11 @@ import { test } from "node:test";
 import { loadRasterImage, prepareRasterSource } from "../src/lib/image-raster";
 import { cropDataUrl, splitDataUrl, upscaleDataUrl } from "../src/lib/canvas/canvas-image-data";
 
+// Bun 的 `fetch` 类型带 preconnect 等扩展，测试替身只实现调用面，在替身边界统一收敛。
+const stubFetch = (impl: (...args: unknown[]) => Promise<Response>) => {
+    globalThis.fetch = impl as unknown as typeof fetch;
+};
+
 test("same-origin resource redirects request CORS before assigning src", async () => {
     const originalImage = globalThis.Image;
     const originalLocation = Object.getOwnPropertyDescriptor(globalThis, "location");
@@ -113,10 +118,10 @@ test("resource read failures propagate without falling back to the display URL",
     let fetched = false;
     const failure = new Error("resource authorization failed");
     try {
-        globalThis.fetch = async () => {
+        stubFetch(async () => {
             fetched = true;
             throw new Error("unsafe fallback");
-        };
+        });
         await assert.rejects(
             prepareRasterSource("/api/resources/image/file", async () => {
                 throw failure;
@@ -133,10 +138,10 @@ test("uncached sources fetch with CORS and create a readable Blob URL", async ()
     const originalFetch = globalThis.fetch;
     const requests: Array<{ url: unknown; options: unknown }> = [];
     try {
-        globalThis.fetch = async (url, options) => {
+        stubFetch(async (url, options) => {
             requests.push({ url, options });
             return new Response(new Blob(["pixels"], { type: "image/png" }));
-        };
+        });
         const source = await prepareRasterSource("/api/resources/image/file", async () => null);
         assert.deepEqual(requests, [{ url: "/api/resources/image/file", options: { mode: "cors", credentials: "same-origin" } }]);
         assert.match(source.url, /^blob:/);
@@ -149,12 +154,12 @@ test("uncached sources fetch with CORS and create a readable Blob URL", async ()
 test("HTTP and CORS failures stop processing instead of returning an unsafe URL", async () => {
     const originalFetch = globalThis.fetch;
     try {
-        globalThis.fetch = async () => new Response("forbidden", { status: 403 });
+        stubFetch(async () => new Response("forbidden", { status: 403 }));
         await assert.rejects(prepareRasterSource("https://cdn.example/image.png"), /原图读取失败（403）/);
         const failure = new TypeError("Failed to fetch");
-        globalThis.fetch = async () => {
+        stubFetch(async () => {
             throw failure;
-        };
+        });
         await assert.rejects(prepareRasterSource("https://cdn.example/image.png"), (error) => error === failure);
         await assert.rejects(prepareRasterSource(" "), /图片地址为空/);
     } finally {

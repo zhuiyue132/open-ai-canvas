@@ -17,7 +17,8 @@ test("profile refresh synchronizes avatars while rejecting stale account and can
             let reject!: (reason: Error) => void;
             apiClient.request = (() =>
                 new Promise((resolve, fail) => {
-                    respond = resolve;
+                    // resolve 的形参是具体信封类型；这里只捕获并手动触发，测试替身边界统一收口为 unknown。
+                    respond = resolve as unknown as (value: unknown) => void;
                     reject = fail;
                 })) as typeof apiClient.request;
             const key = ["user-profile", scenario];

@@ -11,6 +11,8 @@ const videoReference = {
     title: "片头镜头",
     sourceType: "video" as const,
     previewUrl: "data:image/png;base64,preview",
+    // 聊天界面不读 active；这里只为满足引用结构，语义上节点存在即可用。
+    active: true,
 };
 
 function assistantMessage(text: string): CloudAgentChatMessage {
@@ -47,14 +49,7 @@ test("leaves fenced code blocks untouched", () => {
 });
 
 test("renders an agent node link as a titled inline node card", () => {
-    const html = renderToStaticMarkup(
-        <AgentChatMessage
-            item={assistantMessage("新节点 ID：video-1790385749473-q4157")}
-            theme={canvasThemes.dark}
-            references={[videoReference]}
-            onFocusNode={() => {}}
-        />,
-    );
+    const html = renderToStaticMarkup(<AgentChatMessage item={assistantMessage("新节点 ID：video-1790385749473-q4157")} theme={canvasThemes.dark} references={[videoReference]} onFocusNode={() => {}} />);
     const visibleText = html.replace(/<[^>]+>/gu, "");
 
     expect(html).toContain('class="agent-message-node-link"');
@@ -67,12 +62,7 @@ test("renders an agent node link as a titled inline node card", () => {
 test("renders the image-to-previs user request with the existing canvas node card", () => {
     const imageReference = { ...videoReference, kind: "image" as const, sourceType: "image" as const, label: "道姑", title: "道姑" };
     const html = renderToStaticMarkup(
-        <AgentChatMessage
-            item={{ id: "user-previs", role: "user", text: "根据此图生成 3D 预演台", canvasReferenceNodeId: imageReference.nodeId }}
-            theme={canvasThemes.dark}
-            references={[imageReference]}
-            onFocusNode={() => {}}
-        />,
+        <AgentChatMessage item={{ id: "user-previs", role: "user", text: "根据此图生成 3D 预演台", canvasReferenceNodeId: imageReference.nodeId }} theme={canvasThemes.dark} references={[imageReference]} onFocusNode={() => {}} />,
     );
 
     expect(html).toContain('class="agent-message-node-link"');
@@ -83,7 +73,7 @@ test("renders the image-to-previs user request with the existing canvas node car
 
 test("labels character cards by resource kind instead of the underlying text type", () => {
     const nodeId = "text-1790385749473-char1";
-    const reference = { id: nodeId, nodeId, kind: "character" as const, label: "李莫愁", title: "李莫愁", sourceType: "text" as const };
+    const reference = { id: nodeId, nodeId, kind: "character" as const, label: "李莫愁", title: "李莫愁", sourceType: "text" as const, active: true };
 
     expect(rewriteAgentNodeLinks(nodeId, [reference])).toContain(`[角色卡 · 李莫愁](#agent-node:${nodeId})`);
 });

@@ -39,7 +39,7 @@ test("token prices are independent and zero costs remain free", () => {
 });
 
 test("video token adjusts only output; per-second adjusts unit price", () => {
-    const video = { ...item, capability: "video" as const, priceTiers: [{ ...item.priceTiers[0]!, billingMode: "token" as const }] };
+    const video = { ...item, capability: "video" as const, priceTiers: [{ ...item.priceTiers[0]!, billingMode: "token" as ChannelModel["billingMode"] }] };
     const tier = previewModelRepricing([video], 20)[0]!.priceTiers[0]!;
     expect(tier.outputTokenPriceMicrocredits).toBe(4_800_000);
     expect(tier.inputTokenPriceMicrocredits).toBe(0);

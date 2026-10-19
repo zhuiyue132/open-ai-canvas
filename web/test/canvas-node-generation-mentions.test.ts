@@ -92,7 +92,10 @@ describe("canvas node generation position mentions", () => {
         const child = node("child", CanvasNodeType.Image, "");
         child.metadata = { batchRootId: root.id };
         const nodes = [a, b, root, child];
-        const connections = [{ id: "a-root", fromNodeId: a.id, toNodeId: root.id }, { id: "group", fromNodeId: root.id, toNodeId: child.id }];
+        const connections = [
+            { id: "a-root", fromNodeId: a.id, toNodeId: root.id },
+            { id: "group", fromNodeId: root.id, toNodeId: child.id },
+        ];
         expect(getGenerationResourceNodes(child.id, nodes, connections).map((item) => item.id)).toEqual(["a"]);
         expect(getGenerationResourceNodes(child.id, nodes, [...connections, { id: "b-child", fromNodeId: b.id, toNodeId: child.id }, { id: "b-child-duplicate", fromNodeId: b.id, toNodeId: child.id }]).map((item) => item.id)).toEqual(["b"]);
         root.metadata = { isBatchRoot: true, batchRootId: child.id };
@@ -114,7 +117,11 @@ describe("canvas node generation position mentions", () => {
         ];
         const context = buildNodeGenerationContext(child.id, nodes, connections, child.metadata.composerContent!, []);
         expect(context.referenceImages.map((image) => image.id)).toEqual([a.id, b.id]);
-        expect(buildCanvasResourceReferences(nodes, connections, child.id).filter((ref) => ref.active).map((ref) => ref.nodeId)).toEqual([a.id, b.id]);
+        expect(
+            buildCanvasResourceReferences(nodes, connections, child.id)
+                .filter((ref) => ref.active)
+                .map((ref) => ref.nodeId),
+        ).toEqual([a.id, b.id]);
     });
 
     test("Agent 保存的素材引用块在编辑器和再次提交时保持相同编号", () => {
@@ -124,13 +131,17 @@ describe("canvas node generation position mentions", () => {
         const voice = node("voice", CanvasNodeType.Audio, "data:audio/mpeg;base64,c");
         const note = node("note", CanvasNodeType.Markdown, "导演方案");
         const prompt = "一镜到底\n\n【资产参考】\n人物：@图片1\n假发：@图片2\n声音：@音频1";
-        target.metadata = { composerContent: prompt, prompt, referenceNodeIds: [character.id, voice.id, wig.id] };
+        // 顶层引用字段现为 referenceAssetNodeIds；本用例的编号只由连接与提示词决定，旧字段名（referenceNodeIds）已废弃。
+        target.metadata = { composerContent: prompt, prompt, referenceAssetNodeIds: [character.id, voice.id, wig.id] };
         const nodes = [target, wig, voice, note, character];
         const connections = [character, voice, wig, note].map((source) => connection(source.id));
         const references = buildCanvasResourceReferences(nodes, connections, target.id).filter((reference) => reference.active);
 
         expect(Object.fromEntries(references.map((reference) => [reference.nodeId, reference.label]))).toEqual({
-            character: "图片1", wig: "图片2", voice: "音频1", note: "文本1",
+            character: "图片1",
+            wig: "图片2",
+            voice: "音频1",
+            note: "文本1",
         });
         const context = buildNodeGenerationContext(target.id, nodes, connections, prompt, [], true);
         expect(context.referenceImages.map((reference) => reference.id)).toEqual([character.id, wig.id]);

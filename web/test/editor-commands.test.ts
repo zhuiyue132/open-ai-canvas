@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { createEditorCommandRegistry, getEditorCommandRegistry } from "../src/lib/timeline/editor-commands";
+import type { EditCommand } from "../src/lib/timeline/editor-commands";
 import type { TimelineProject } from "../src/types/timeline";
 
 const golden = JSON.parse(readFileSync(join(import.meta.dir, "fixtures/commands.golden.json"), "utf8")) as {
@@ -52,8 +53,8 @@ describe("editor command registry (fail-closed payload validation)", () => {
     });
 
     test("malformed command object throws", () => {
-        expect(() => registry.apply(golden.base, null as unknown as { op: string })).toThrow(/must be \{ op, payload \}/);
-        expect(() => registry.apply(golden.base, { payload: {} } as unknown as { op: string })).toThrow(/must be \{ op, payload \}/);
+        expect(() => registry.apply(golden.base, null as unknown as EditCommand)).toThrow(/must be \{ op, payload \}/);
+        expect(() => registry.apply(golden.base, { payload: {} } as unknown as EditCommand)).toThrow(/must be \{ op, payload \}/);
     });
 
     test("addClip rejects missing fields, negative start, subtitle kind, missing track", () => {
@@ -195,9 +196,7 @@ describe("editor command registry (removeTrack)", () => {
     });
 
     test("rejects an unknown track id", () => {
-        expect(() =>
-            registry.apply(golden.base, { op: "removeTrack", payload: { trackId: "no-such-track" } }),
-        ).toThrow(/track/);
+        expect(() => registry.apply(golden.base, { op: "removeTrack", payload: { trackId: "no-such-track" } })).toThrow(/track/);
     });
 });
 
@@ -230,14 +229,8 @@ describe("editor command registry (setTrackFlag)", () => {
     });
 
     test("rejects unknown track, unknown flag, and non-boolean value", () => {
-        expect(() =>
-            registry.apply(golden.base, { op: "setTrackFlag", payload: { trackId: "no-such-track", flag: "visible", value: false } }),
-        ).toThrow(/track/);
-        expect(() =>
-            registry.apply(golden.base, { op: "setTrackFlag", payload: { trackId: golden.base.tracks[0].id, flag: "locked", value: true } }),
-        ).toThrow(/flag/);
-        expect(() =>
-            registry.apply(golden.base, { op: "setTrackFlag", payload: { trackId: golden.base.tracks[0].id, flag: "visible", value: "on" } }),
-        ).toThrow(/boolean/);
+        expect(() => registry.apply(golden.base, { op: "setTrackFlag", payload: { trackId: "no-such-track", flag: "visible", value: false } })).toThrow(/track/);
+        expect(() => registry.apply(golden.base, { op: "setTrackFlag", payload: { trackId: golden.base.tracks[0].id, flag: "locked", value: true } })).toThrow(/flag/);
+        expect(() => registry.apply(golden.base, { op: "setTrackFlag", payload: { trackId: golden.base.tracks[0].id, flag: "visible", value: "on" } })).toThrow(/boolean/);
     });
 });

@@ -596,7 +596,7 @@ async function runCanvasCopyGeneration() {
         await flushCanvasStorePersistence();
         // Force a real same-field race: the generation snapshot also changed the
         // title while the latest ordinary save already persisted a user rename.
-        useCanvasStore.getState().updateProject(projectId, { nodes: pendingNodes.map((node) => node.id === "copy" ? { ...node, title: "Latest user title", position: { x: 700, y: 500 } } : node) });
+        useCanvasStore.getState().updateProject(projectId, { nodes: pendingNodes.map((node) => (node.id === "copy" ? { ...node, title: "Latest user title", position: { x: 700, y: 500 } } : node)) });
         await flushCanvasStorePersistence();
         const copyEffect = "attach-node:new-task:copy:0";
         await persistCanvasGenerationEffect({
@@ -624,7 +624,7 @@ async function runCanvasAssetPreparation() {
         const { localForageStorageForScope } = await import("../../src/lib/localforage-storage");
         const { CanvasNodeType } = await import("../../src/types/canvas");
         const projectId = useCanvasStore.getState().createProject("asset preparation");
-        const placeholder = { id: "result", type: CanvasNodeType.Image, position: { x: 0, y: 0 }, width: 320, height: 240, metadata: { status: "loading" as const } };
+        const placeholder = { id: "result", type: CanvasNodeType.Image, title: "生成结果", position: { x: 0, y: 0 }, width: 320, height: 240, metadata: { status: "loading" as const } };
         useCanvasStore.getState().updateProject(projectId, { nodes: [placeholder] });
         await flushCanvasStorePersistence();
         const candidate = { ...placeholder, metadata: { status: "success" as const, content: "/derived.png", storageKey: "resource:derived", imageLayerGroup: { width: 640, height: 480, layers: [] } } };

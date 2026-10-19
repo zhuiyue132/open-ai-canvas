@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { CanvasNode } from "@/components/canvas/canvas-node";
+import type { CanvasNodeRenderLOD } from "@/lib/canvas/canvas-node-lod";
 import { applyGeneratedMediaResultMetadata, videoMetadata } from "@/lib/canvas/canvas-generation-task-sync";
 import { commitProducedModel, producedModelCandidateForGeneration, producedModelLabel, submittedProducedModel } from "@/lib/canvas/produced-model";
 import { searchCanvasNodes } from "@/lib/canvas/canvas-node-search";
@@ -109,7 +110,7 @@ describe("produced model", () => {
 
 describe("produced model badge", () => {
     const noop = () => {};
-    function renderMedia(type: CanvasNodeType, showImageInfo: boolean, mediaActive = false, renderLOD: "full" | "compact" = "full") {
+    function renderMedia(type: CanvasNodeType, showImageInfo: boolean, mediaActive = false, renderLOD: CanvasNodeRenderLOD = "full") {
         return renderToStaticMarkup(
             <CanvasNode
                 data={{
@@ -157,6 +158,6 @@ describe("produced model badge", () => {
         expect(video).toContain("flux-dev");
         expect(video).not.toContain("1280 x 720");
         expect(renderMedia(CanvasNodeType.Audio, true)).toContain("flux-dev");
-        expect(renderMedia(CanvasNodeType.Image, true, false, "compact")).not.toContain("flux-dev");
+        expect(renderMedia(CanvasNodeType.Image, true, false, "preview")).not.toContain("flux-dev");
     });
 });

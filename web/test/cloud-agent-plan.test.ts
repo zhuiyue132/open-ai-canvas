@@ -30,12 +30,14 @@ describe("latestAgentPlanItems", () => {
     });
 
     test("最新那份还没做完 → 继续显示", () => {
-        expect(agentPlanVisible(latestAgentPlanItems([{ id: "plan-run-1", planItems: items("done", "doing") }]))).toBe(true);
+        const messages = [{ id: "plan-run-1", planItems: items("done", "doing") }];
+        expect(agentPlanVisible(latestAgentPlanItems(messages))).toBe(true);
     });
 
     test("没有任何清单（包括带空数组的）→ 空且不显示", () => {
         expect(latestAgentPlanItems([])).toEqual([]);
-        expect(latestAgentPlanItems([{ id: "user-1" }, { id: "plan-run-1", planItems: [] }])).toEqual([]);
+        const messages = [{ id: "user-1" }, { id: "plan-run-1", planItems: [] }];
+        expect(latestAgentPlanItems(messages)).toEqual([]);
         expect(agentPlanVisible([])).toBe(false);
     });
 });

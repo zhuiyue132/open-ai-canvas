@@ -65,7 +65,8 @@ describe("画布 operations 生成", () => {
 
     test("节点可选字段的 undefined 在 JSON 请求中保留为 null 基线和删除值", () => {
         const node = { id: "node", metadata: { title: undefined } } as unknown as CanvasProject["nodes"][number];
-        const changed = { ...node, metadata: { title: "新标题" } };
+        // 历史 journal 的 metadata 可能带已迁出的键（title 现在是节点顶层字段）；本用例验证的是 patch 线格式。
+        const changed = { ...node, metadata: { title: "新标题" } as unknown as CanvasProject["nodes"][number]["metadata"] };
         const added = JSON.parse(JSON.stringify(buildCanvasOperations(canvas({ nodes: [node] }), canvas({ nodes: [changed] }))));
         expect(added).toEqual([{ type: "patch_node", id: "node", patch: { "metadata.title": "新标题" }, before: { "metadata.title": null } }]);
         const removed = JSON.parse(JSON.stringify(buildCanvasOperations(canvas({ nodes: [changed] }), canvas({ nodes: [node] }))));

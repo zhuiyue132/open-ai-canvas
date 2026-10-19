@@ -5,6 +5,7 @@ import { canvasThemes } from "../src/lib/canvas-theme";
 import { defaultImageCapabilityConfig } from "../src/lib/model-capabilities";
 import { priceTierToForm, skuSelectorFromForm } from "../src/pages/admin/components/channel-model-price-tier-form";
 import type { AiConfig } from "../src/stores/use-config-store";
+import type { ChannelModelPriceTier } from "../src/services/api/wallet";
 
 function seedreamConfig(model: string): AiConfig {
     return {
@@ -48,18 +49,34 @@ describe("ImageSettingsPanel with km-kemei-seedream", () => {
         const profile = defaultImageCapabilityConfig("km-kemei-seedream", "doubao-seedream-5-0-pro-260628");
         expect(profile.resolution).toEqual({ supported: true, values: ["1k", "1.5k", "2k"], default: "2k" });
 
-        const rawTiers = [
-            { id: "t1", selector: { quality: "1k" }, billingMode: "fixed_request", unitPriceMicrocredits: 20000000, priceConfigured: true, enabled: true },
-            { id: "t2", selector: { quality: "1.5k" }, billingMode: "fixed_request", unitPriceMicrocredits: 40000000, priceConfigured: true, enabled: true },
-            { id: "t3", selector: { quality: "2k" }, billingMode: "fixed_request", unitPriceMicrocredits: 40000000, priceConfigured: true, enabled: true },
-        ];
+        // 存量档位只有 quality 选择器与价格；补齐当前 ChannelModelPriceTier 的必填字段，selector 保持 legacy 形态。
+        const legacyTier = (id: string, quality: string, unitPriceMicrocredits: number): ChannelModelPriceTier => ({
+            id,
+            channelModelId: "cm-seedream",
+            selector: { quality },
+            selectorKey: JSON.stringify({ quality }),
+            resolution: "",
+            videoSeconds: 0,
+            providerModelKey: "km-kemei-seedream",
+            billingMode: "fixed_request",
+            unitPriceMicrocredits,
+            inputTokenPriceMicrocredits: 0,
+            outputTokenPriceMicrocredits: 0,
+            cachedTokenPriceMicrocredits: 0,
+            priceConfigured: true,
+            enabled: true,
+            priceVersion: 1,
+            createdAt: "",
+            updatedAt: "",
+        });
+        const rawTiers = [legacyTier("t1", "1k", 20000000), legacyTier("t2", "1.5k", 40000000), legacyTier("t3", "2k", 40000000)];
 
         const formValues = rawTiers.map((tier) => priceTierToForm(tier, profile, "km-kemei-seedream"));
         expect(formValues[0].imageResolution).toBe("1k");
         expect(formValues[1].imageResolution).toBe("1.5k");
         expect(formValues[2].imageResolution).toBe("2k");
 
-        const selectors = formValues.map((values) => skuSelectorFromForm("image", values, { image: profile }));
+        const selectors = formValues.map((values) => skuSelectorFromForm("image", values, { version: 1, image: profile }));
         expect(selectors[0]).toEqual({ imageResolution: "1k" });
         expect(selectors[1]).toEqual({ imageResolution: "1.5k" });
         expect(selectors[2]).toEqual({ imageResolution: "2k" });

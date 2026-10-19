@@ -70,7 +70,7 @@ test("model rows preserve multiple promotional labels and colors without alterin
         expect(markup).toContain("0.1-0.2 积分/秒");
     }
     config.channels[0].modelCosts![0].tags = [];
-    const markup = renderToStaticMarkup(<ModelLabel config={config} model={config.model} capability="video" theme={canvasThemes.light} showDescription />);
+    const markup = renderToStaticMarkup(<ModelLabel config={config} model={config.model} capability="video" theme={canvasThemes.light} creationVariant={false} showConfiguredModelName={false} showPrice={false} showDescription />);
     expect(markup).not.toContain("限时特价");
     expect(markup).not.toContain("官方1折");
 });

@@ -132,6 +132,7 @@ describe("canvas character reference delivery", () => {
             tags: [],
             createdAt: "",
             updatedAt: "",
+            coverUrl: "",
             data: { dataUrl: "", storageKey: "resource:library", mimeType: "image/png", bytes: 1, width: 1, height: 1 },
         };
         const context = contextFor(

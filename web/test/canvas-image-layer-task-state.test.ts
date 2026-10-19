@@ -4,6 +4,7 @@ import { CanvasNodeType, type CanvasNodeData } from "@/types/canvas";
 const node: CanvasNodeData = {
     id: "layer",
     type: CanvasNodeType.Image,
+    title: "图层",
     position: { x: 0, y: 0 },
     width: 20,
     height: 20,

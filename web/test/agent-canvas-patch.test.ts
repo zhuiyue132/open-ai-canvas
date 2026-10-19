@@ -4,8 +4,24 @@ import { isCanvasNodeGenerating } from "@/lib/canvas/canvas-node-task-state";
 import type { CanvasProject } from "@/stores/canvas/use-canvas-store";
 import { CanvasNodeType, type CanvasNodeData } from "@/types/canvas";
 
+// PrevisVec3 是定长元组，字面量数组会被推成 number[]，这里统一构造静止变换。
+const restTransform = { position: [0, 0, 0] as [number, number, number], rotation: [0, 0, 0] as [number, number, number], scale: [1, 1, 1] as [number, number, number] };
+
 const node: CanvasNodeData = { id: "video-1", title: "满月动画", type: CanvasNodeType.Video, position: { x: 10, y: 20 }, width: 320, height: 180, metadata: { status: "loading", taskId: "task-1", taskStatus: "running", prompt: "原始提示词" } };
-const project: CanvasProject = { id: "canvas", title: "画布", nodes: [node], connections: [], chatSessions: [], activeChatId: null, viewport: { x: 12, y: 24, k: 1 }, createdAt: "2026-09-13", updatedAt: "2026-09-13" };
+const project: CanvasProject = {
+    id: "canvas",
+    title: "画布",
+    nodes: [node],
+    connections: [],
+    chatSessions: [],
+    activeChatId: null,
+    viewport: { x: 12, y: 24, k: 1 },
+    createdAt: "2026-09-13",
+    updatedAt: "2026-09-13",
+    backgroundMode: "dots",
+    showImageInfo: false,
+    previsScenes: [],
+};
 const failed: CanvasNodeData = { ...node, metadata: { ...node.metadata, status: "error", taskStatus: "failed", errorDetails: "上游拒绝" } };
 const patch: AgentCanvasPatch = { canvasId: project.id, updatedAt: "2026-09-13T12:00:00Z", nodes: [{ before: node, after: failed }], connections: [] };
 
@@ -85,7 +101,6 @@ test("task state covers Agent, manual submissions and historical terminal tasks"
     expect(isCanvasNodeGenerating({ ...node, metadata: { status: "idle" } }, node.id)).toBe(true);
 });
 
-
 test("task progress ahead of the server checkpoint still accepts terminal state", () => {
     const queued = { ...node, metadata: { ...node.metadata, taskStatus: "queued", taskProgress: 0 } };
     const running = { ...node, metadata: { ...node.metadata, taskProgress: 67 } };
@@ -116,7 +131,9 @@ test("full Previs refresh merges scene bookkeeping and preserves the local viewp
         ...previous,
         revision: 2,
         updatedAt: "2026-09-13T12:00:00Z",
-        previsScenes: [{ ...scene, updatedAt: "2026-09-13T12:00:00Z", objects: [{ id: "actor-1", name: "Agent 演员" }] }],
+        previsScenes: [
+            { ...scene, updatedAt: "2026-09-13T12:00:00Z", objects: [{ id: "actor-1", name: "Agent 演员", kind: "actor" as const, transform: restTransform, color: "#cccccc", visible: true, castShadow: true, receiveShadow: true, keyframes: [] }] },
+        ],
     };
     const local = {
         ...previous,

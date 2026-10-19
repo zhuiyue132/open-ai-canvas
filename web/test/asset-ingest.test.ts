@@ -7,7 +7,7 @@ function makeAsset(overrides: Partial<ProjectAsset>): ProjectAsset {
         id: "ast-1",
         title: "Demo Video",
         mediaType: "video",
-        category: "video",
+        category: "material",
         status: "ready",
         versionCount: 1,
         usages: [],
@@ -70,7 +70,7 @@ describe("makeClipFromAsset", () => {
     });
 
     test("audio 资产映射到 audio kind", () => {
-        const clip = makeClipFromAsset(makeAsset({ mediaType: "audio", category: "audio" }), options);
+        const clip = makeClipFromAsset(makeAsset({ mediaType: "audio", category: "material" }), options);
         expect(clip?.kind).toBe("audio");
         expect(clip?.directMedia?.kind).toBe("audio");
     });
