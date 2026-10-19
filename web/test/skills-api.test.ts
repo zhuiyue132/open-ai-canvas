@@ -29,7 +29,9 @@ test("added Skills retries a transient backend proxy failure", async () => {
 test("a pending skills response cannot replace the cache after installation", async () => {
     const original = apiClient.request;
     let resolveStale: ((value: unknown) => void) | undefined;
-    const staleResponse = new Promise((resolve) => { resolveStale = resolve; });
+    const staleResponse = new Promise((resolve) => {
+        resolveStale = resolve;
+    });
     let reads = 0;
     const envelope = (skills: unknown[]) => ({ data: { code: 0, data: { skills }, msg: "ok" }, status: 200, headers: {} });
     apiClient.request = (async (config) => {
@@ -45,7 +47,9 @@ test("a pending skills response cannot replace the cache after installation", as
         const fresh = await listAddedSkills();
         resolveStale?.(envelope([]));
         await pending;
-        expect(fresh.skills).toEqual([{ skillId: "preset", isAdded: true }]);
+        // normalizeAddedSkillReference 对旧后端/测试桩返回的最小关系对象直接透传（src 内已用 as unknown as Skill），
+        // 因此这里的期望值就是最小引用形态。
+        expect(fresh.skills).toEqual([{ skillId: "preset", isAdded: true }] as unknown as typeof fresh.skills);
         expect((await listAddedSkills()).skills).toEqual(fresh.skills);
         expect(reads).toBe(2);
     } finally {

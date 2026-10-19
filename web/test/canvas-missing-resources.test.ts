@@ -17,17 +17,18 @@ describe("canvas missing resource overwrite", () => {
             timeline: { clips: [{ id: "clip", directMedia: { kind: "image", assetId: "asset-1", storageKey: "resource:gone", url: "/api/resources/gone/file" } }] },
         };
         const repaired = clearMissingCanvasResources(value, new Set(["gone"]));
+        // 清理会删掉失效的上游字段，返回类型里的必填项不再成立；这里断言的是清理后的线格式。
         expect(repaired).toEqual({
             id: "canvas",
             nodes: [{ id: "node-1", type: "image", metadata: { prompt: "keep this prompt", status: "idle" } }],
             timeline: { clips: [{ id: "clip", directMedia: { kind: "image" } }] },
-        });
+        } as unknown as typeof repaired);
     });
 
     test("server reported locator fields are also cleared during the fallback", () => {
         const value = { nodes: [{ id: "node-1", metadata: { assetId: "asset-1", futureLocator: "resource:gone", prompt: "keep" } }] };
         expect(clearMissingCanvasResources(value, new Set(["gone"]), "", true)).toEqual({
             nodes: [{ id: "node-1", metadata: { assetId: "asset-1", prompt: "keep" } }],
-        });
+        } as unknown as typeof value);
     });
 });

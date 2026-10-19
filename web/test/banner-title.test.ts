@@ -59,7 +59,8 @@ describe("通知标题样式输出", () => {
 
     test("字体档位输出对应字体栈", () => {
         const serif = BANNER_TITLE_FONT_FAMILIES.find((item) => item.key === "serif");
-        expect(bannerTitleRunStyle({ text: "标题", fontFamily: "serif" }).fontFamily).toBe(serif?.css);
+        if (!serif) throw new Error("serif 字体档位缺失");
+        expect(bannerTitleRunStyle({ text: "标题", fontFamily: "serif" }).fontFamily).toBe(serif.css);
     });
 
     test("十六进制颜色归一化", () => {
@@ -87,12 +88,7 @@ describe("通知标题对比度检查", () => {
     });
 
     test("挑出对比度不足的颜色并去重，默认无色不参与检查", () => {
-        const runs = [
-            { text: "低", color: "#808BF5" },
-            { text: "也低", color: "#808BF5" },
-            { text: "足够", color: "#FFFFFF" },
-            { text: "没设颜色" },
-        ];
+        const runs = [{ text: "低", color: "#808BF5" }, { text: "也低", color: "#808BF5" }, { text: "足够", color: "#FFFFFF" }, { text: "没设颜色" }];
         expect(lowContrastBannerTitleColors(runs, "#5C67E2")).toEqual(["#808BF5"]);
         expect(lowContrastBannerTitleColors(runs, "#3F4590")).toEqual(["#808BF5"]);
         expect(lowContrastBannerTitleColors([{ text: "足够", color: "#FFFFFF" }], "#5C67E2")).toEqual([]);

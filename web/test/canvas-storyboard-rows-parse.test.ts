@@ -12,18 +12,23 @@ function storyboardTask(resultJson: string): GenerationTask {
 // 分镜解析必须穿透包装取内层 {title, rows}，同时兼容模板路径直接落顶层的结构。
 describe("storyboardRowsFromTask", () => {
     test("从 {mode, reasoning, text} 包装的 text 内层解析分镜行", () => {
-        const payload = { title: "桃源三结义", rows: [
-            { shotNumber: 1, durationSeconds: 8, plotDescription: "朝堂开篇", dialogue: "", characters: ["刘备"], mustHave: ["列队"], optionalDetails: [] },
-            { shotNumber: 2, durationSeconds: 10, plotDescription: "告示墙前叹气", dialogue: "唉……", characters: ["刘备", "关羽"] },
-        ] };
+        const payload = {
+            title: "桃源三结义",
+            rows: [
+                { shotNumber: 1, durationSeconds: 8, plotDescription: "朝堂开篇", dialogue: "", characters: ["刘备"], mustHave: ["列队"], optionalDetails: [] },
+                { shotNumber: 2, durationSeconds: 10, plotDescription: "告示墙前叹气", dialogue: "唉……", characters: ["刘备", "关羽"] },
+            ],
+        };
         const task = storyboardTask(JSON.stringify({ mode: "text", reasoning: "思考过程", text: JSON.stringify(payload) }));
         const result = storyboardRowsFromTask(task);
         expect(result.title).toBe("桃源三结义");
         expect(result.rows).toHaveLength(2);
         expect(result.rows[0].shotNumber).toBe(1);
         expect(result.rows[0].status).toBe("idle");
-        expect(result.rows[0].characters).toEqual(["刘备"]);
-        expect(result.rows[1].characters).toEqual(["刘备", "关羽"]);
+        // storyboardRowsFromTask 原样透传模型返回的 characters（见 canvas-project-domain 的 next.characters 赋值），
+        // 而类型声明是 StoryboardCharacterReference[]；这里断言的是当前的透传行为。
+        expect(result.rows[0].characters).toEqual(["刘备"] as unknown as (typeof result.rows)[0]["characters"]);
+        expect(result.rows[1].characters).toEqual(["刘备", "关羽"] as unknown as (typeof result.rows)[1]["characters"]);
     });
 
     test("text 内层被 ```json 代码块包裹时仍可解析", () => {
@@ -57,13 +62,19 @@ describe("storyboardRowsFromTask", () => {
     });
 
     test("镜头文本字段不是字符串时仍可继续落库", () => {
-        const task = storyboardTask(JSON.stringify({ rows: [{
-            plotDescription: { text: "对象形式的剧情" },
-            dialogue: ["台词一", "台词二"],
-            camera: { value: "中景" },
-            motion: { description: "缓慢推进" },
-            timeBeats: 3,
-        }] }));
+        const task = storyboardTask(
+            JSON.stringify({
+                rows: [
+                    {
+                        plotDescription: { text: "对象形式的剧情" },
+                        dialogue: ["台词一", "台词二"],
+                        camera: { value: "中景" },
+                        motion: { description: "缓慢推进" },
+                        timeBeats: 3,
+                    },
+                ],
+            }),
+        );
         const result = storyboardRowsFromTask(task);
         const shots = storyboardRowsToProjectShots(result.rows);
         expect(shots[0]?.description).toBe("对象形式的剧情");

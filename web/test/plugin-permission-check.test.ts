@@ -35,7 +35,7 @@ afterAll(() => {
 describe("M5 权限表", () => {
     it("8 个插槽每个都有精确的必需权限", () => {
         // Record<EditorSlotKind, ...> 类型已保证键完整；运行期再兜底验证值与域合法。
-        const expected: Record<(typeof ALL_SLOTS)[number], string> = {
+        const expected: Record<(typeof ALL_SLOTS)[number], EditorPluginPermission> = {
             "timeline-panel": "timeline.command",
             "preview-renderer": "timeline.read",
             inspector: "timeline.command",

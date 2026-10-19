@@ -36,7 +36,18 @@ async function requestWithReasoning(config: AiConfig, events: unknown[]) {
     globalThis.fetch = (async () => streamResponse(events)) as typeof fetch;
     let content = "";
     let reasoning = "";
-    const result = await requestImageQuestion(config, [{ role: "user", content: "请回答" }], (value) => { content = value; }, { onReasoning: (value) => { reasoning = value; } });
+    const result = await requestImageQuestion(
+        config,
+        [{ role: "user", content: "请回答" }],
+        (value) => {
+            content = value;
+        },
+        {
+            onReasoning: (value) => {
+                reasoning = value;
+            },
+        },
+    );
     return { result, content, reasoning };
 }
 
@@ -51,25 +62,20 @@ describe("text reasoning streams", () => {
     });
 
     test("separates Chat Completions reasoning_content from answer text", async () => {
-        const output = await requestWithReasoning(reasoningConfig("chat-completion"), [
-            { choices: [{ delta: { reasoning_content: "推理过程" } }] },
-            { choices: [{ delta: { content: "回答内容" } }] },
-        ]);
+        const output = await requestWithReasoning(reasoningConfig("chat-completion"), [{ choices: [{ delta: { reasoning_content: "推理过程" } }] }, { choices: [{ delta: { content: "回答内容" } }] }]);
 
         expect(output).toEqual({ result: "回答内容", content: "回答内容", reasoning: "推理过程" });
     });
 
     test("does not duplicate Gemini thought parts into visible content", async () => {
-        const output = await requestWithReasoning(reasoningConfig(undefined, "gemini"), [
-            { candidates: [{ content: { parts: [{ text: "内部思考", thought: true }, { text: "可见回答" }] } }] },
-        ]);
+        const output = await requestWithReasoning(reasoningConfig(undefined, "gemini"), [{ candidates: [{ content: { parts: [{ text: "内部思考", thought: true }, { text: "可见回答" }] } }] }]);
 
         expect(output).toEqual({ result: "可见回答", content: "可见回答", reasoning: "内部思考" });
     });
 
     test("keeps completed results open until the user collapses them", () => {
-        const single = renderToStaticMarkup(React.createElement(GenerationToolCard, { status: "completed", heading: "图像生成" }, React.createElement("span", null, "单图结果")));
-        const bulk = renderToStaticMarkup(React.createElement(GenerationToolCard, { status: "completed", heading: "图像生成" }, React.createElement("span", null, "批量结果")));
+        const single = renderToStaticMarkup(React.createElement(GenerationToolCard, { status: "completed", heading: "图像生成", children: React.createElement("span", null, "单图结果") }));
+        const bulk = renderToStaticMarkup(React.createElement(GenerationToolCard, { status: "completed", heading: "图像生成", children: React.createElement("span", null, "批量结果") }));
 
         expect(single).toContain("单图结果");
         expect(bulk).toContain("批量结果");

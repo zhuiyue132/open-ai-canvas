@@ -10,7 +10,8 @@ const asset: Asset = { id: "remote-page-2", kind: "text", title: "第二页素�
 const click = (keys: Partial<MouseEvent<HTMLButtonElement>> = {}) => ({ shiftKey: false, ctrlKey: false, metaKey: false, ...keys }) as MouseEvent<HTMLButtonElement>;
 
 function card(selected: boolean, selectionMode: boolean) {
-    const onSelect = mock(() => {});
+    // onSelect 的真实现签名是 (selected, range?)；mock 必须带上参数类型，否则 calls 被推成空元组。
+    const onSelect = mock((_selected: boolean, _range?: boolean) => {});
     const onOpen = mock(() => {});
     const element = AssetCard({ asset, selected, selectionMode, onSelect, onOpen, onEdit: () => {}, onCopy: () => {}, onDownload: () => {}, onDelete: () => {}, folderOptions: [], onMoveToFolder: () => {} });
     const [cover, body] = element.props.children;

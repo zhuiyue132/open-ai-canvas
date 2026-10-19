@@ -28,6 +28,14 @@ function request(patch: Record<string, unknown> = { "metadata.taskUpdatedAt": ne
     return { mutationId: "original-id", baseRevision: 4, operations: [{ type: "patch_node", id: "video", patch, before }] };
 }
 
+// operations 是联合类型（create_canvas 等变体没有 before）：这些用例断言的是 patch_node 的 before 重写，
+// 这里在夹具边界断言变体后构造期望值，避免对联合类型做 excess-property 断言。
+function patchNodeOperation(operations: CanvasOperationsRequest["operations"], before: Record<string, unknown>, index = 0) {
+    const operation = operations[index];
+    if (!operation || operation.type !== "patch_node") throw new Error("期望 patch_node 操作");
+    return { ...operation, before };
+}
+
 describe("fenceRejectedTaskTimestampMutation", () => {
     test("adds only a same-task fence to original JSON wire without mutating inputs", () => {
         const original = JSON.parse(JSON.stringify(request())) as CanvasOperationsRequest;
@@ -35,7 +43,7 @@ describe("fenceRejectedTaskTimestampMutation", () => {
         const prepared = canvas(newTime);
         const saved = structuredClone({ original, baseline, prepared });
         const result = fenceRejectedTaskTimestampMutation(original, baseline, prepared);
-        expect(result).toEqual({ ...original, operations: [{ ...original.operations[0], before: { "metadata.taskUpdatedAt": oldTime, "metadata.taskId": "task-1" } }] });
+        expect(result).toEqual({ ...original, operations: [patchNodeOperation(original.operations, { "metadata.taskUpdatedAt": oldTime, "metadata.taskId": "task-1" })] });
         expect({ original, baseline, prepared }).toEqual(saved);
         expect(result?.mutationId).toBe("original-id");
         expect(result?.operations[0]?.type === "patch_node" && result.operations[0].patch).toBe(original.operations[0]?.type === "patch_node" && original.operations[0].patch);
@@ -49,7 +57,7 @@ describe("fenceRejectedTaskTimestampMutation", () => {
         expect(result?.operations).toHaveLength(3);
         expect(result?.operations[0]).toBe(original.operations[0]);
         expect(result?.operations[2]).toBe(original.operations[2]);
-        expect(result?.operations[1]).toEqual({ ...original.operations[1], before: { "metadata.taskUpdatedAt": oldTime, "metadata.prompt": "wire-old", "metadata.taskId": "task-1" } });
+        expect(result?.operations[1]).toEqual(patchNodeOperation(original.operations, { "metadata.taskUpdatedAt": oldTime, "metadata.prompt": "wire-old", "metadata.taskId": "task-1" }, 1));
     });
 
     test("rejects any explicit taskId patch even when its value is unchanged", () => {
@@ -85,7 +93,7 @@ describe("fenceRejectedTaskTimestampMutation", () => {
             const saved = structuredClone({ original, baseline });
             expect(fenceRejectedTaskTimestampMutation(original, baseline, canvas(newTime))).toEqual({
                 ...original,
-                operations: [{ ...original.operations[0], before: { "metadata.taskUpdatedAt": null, "metadata.taskId": "task-1" } }],
+                operations: [patchNodeOperation(original.operations, { "metadata.taskUpdatedAt": null, "metadata.taskId": "task-1" })],
             });
             expect({ original, baseline }).toEqual(saved);
         }
@@ -150,7 +158,7 @@ describe("repairLegacyTaskIdFence", () => {
         const original = bind();
         const saved = structuredClone(original);
         const result = repairLegacyTaskIdFence(original, canvas(null, null), canvas(newTime, "task-new"));
-        expect(result?.operations[0]).toEqual({ ...original.operations[0], before: { "metadata.taskId": null, "metadata.taskUpdatedAt": null, "metadata.status": "idle" } });
+        expect(result?.operations[0]).toEqual(patchNodeOperation(original.operations, { "metadata.taskId": null, "metadata.taskUpdatedAt": null, "metadata.status": "idle" }));
         expect(original).toEqual(saved);
         expect(repairLegacyTaskIdFence(result!, canvas(null, null), canvas(newTime, "task-new"))).toBeUndefined();
         expect(repairLegacyTaskIdFence(original, canvas(null, "task-old"), canvas(newTime, "task-new"))?.operations[0]).toMatchObject({ before: { "metadata.taskId": "task-old" } });
