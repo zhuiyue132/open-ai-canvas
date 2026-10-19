@@ -14,7 +14,7 @@ import { reconcileImageBatchRoot } from "@/lib/canvas/canvas-image-batch-retry";
 import { scopedLocalStorage } from "@/lib/user-scope";
 import type { GenerationTask } from "@/services/api/task-center";
 import { synchronizeGenerationSpec } from "@/lib/canvas/generation-contract";
-import { CanvasNodeType, type CanvasConnection, type CanvasNodeData, type CanvasNodeMetadata, type CanvasNodeTypeId, type ConnectionHandle, type Position, type StoryboardColumn, type StoryboardRow } from "@/types/canvas";
+import { CanvasNodeType, type CanvasConnection, type CanvasNodeData, type CanvasNodeMetadata, type CanvasNodeTypeId, type ConnectionHandle, type Position, type StoryboardCharacterReference, type StoryboardColumn, type StoryboardRow } from "@/types/canvas";
 
 export function createCanvasNode(type: CanvasNodeTypeId, position: Position, metadata?: CanvasNodeMetadata): CanvasNodeData {
     const builtinSpec = type in NODE_DEFAULT_SIZE ? getNodeSpec(type as CanvasNodeType) : undefined;
@@ -187,6 +187,32 @@ function normalizeStoryboardText(value: unknown): string {
     return "";
 }
 
+// 模型和旧任务会把 characters 返回成字符串数组，行结构下游（素材绑定、提示词、引用组）都按对象读取。
+function normalizeStoryboardCharacters(value: unknown): StoryboardCharacterReference[] {
+    if (!Array.isArray(value)) return [];
+    const characters: StoryboardCharacterReference[] = [];
+    for (const entry of value) {
+        if (typeof entry === "string") {
+            const characterName = entry.trim();
+            if (characterName) characters.push({ characterName });
+            continue;
+        }
+        if (!entry || typeof entry !== "object") continue;
+        const record = entry as Record<string, unknown>;
+        const name = typeof record.characterName === "string" ? record.characterName : typeof record.name === "string" ? record.name : "";
+        const characterName = name.trim();
+        if (!characterName) continue;
+        characters.push({
+            characterName,
+            ...(typeof record.characterAssetId === "string" && record.characterAssetId ? { characterAssetId: record.characterAssetId } : {}),
+            ...(typeof record.characterVersionId === "string" && record.characterVersionId ? { characterVersionId: record.characterVersionId } : {}),
+            ...(typeof record.characterDescription === "string" && record.characterDescription ? { characterDescription: record.characterDescription } : {}),
+            ...(typeof record.characterImageNodeId === "string" && record.characterImageNodeId ? { characterImageNodeId: record.characterImageNodeId } : {}),
+        });
+    }
+    return characters;
+}
+
 function normalizeStoryboardRow(row: Partial<StoryboardRow>): Partial<StoryboardRow> {
     return {
         ...row,
@@ -225,7 +251,7 @@ export function storyboardRowsFromTask(task: GenerationTask) {
                 status: "idle",
                 assetBindings: normalizeStoryboardAssetBindings(Array.isArray(source.assetBindings) ? source.assetBindings : undefined),
             });
-            next.characters = Array.isArray(source.characters) ? source.characters : [];
+            next.characters = normalizeStoryboardCharacters(source.characters);
             next.mustHave = Array.isArray(source.mustHave) ? source.mustHave : [];
             next.optionalDetails = Array.isArray(source.optionalDetails) ? source.optionalDetails : [];
             return next;

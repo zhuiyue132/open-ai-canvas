@@ -25,10 +25,32 @@ describe("storyboardRowsFromTask", () => {
         expect(result.rows).toHaveLength(2);
         expect(result.rows[0].shotNumber).toBe(1);
         expect(result.rows[0].status).toBe("idle");
-        // storyboardRowsFromTask 原样透传模型返回的 characters（见 canvas-project-domain 的 next.characters 赋值），
-        // 而类型声明是 StoryboardCharacterReference[]；这里断言的是当前的透传行为。
-        expect(result.rows[0].characters).toEqual(["刘备"] as unknown as (typeof result.rows)[0]["characters"]);
-        expect(result.rows[1].characters).toEqual(["刘备", "关羽"] as unknown as (typeof result.rows)[1]["characters"]);
+        // 模型返回字符串角色名时归一化成行结构的对象形态，下游（素材绑定、提示词、引用组）按 characterName 读取。
+        expect(result.rows[0].characters).toEqual([{ characterName: "刘备" }]);
+        expect(result.rows[1].characters).toEqual([{ characterName: "刘备" }, { characterName: "关羽" }]);
+    });
+
+    test("已是对象形态的角色引用保留 id 字段，空白名与非法项被丢弃", () => {
+        const payload = {
+            rows: [
+                {
+                    shotNumber: 1,
+                    characters: [
+                        { characterName: " 刘备 ", characterAssetId: "asset-liu", characterVersionId: "v-1", characterDescription: "织席贩履" },
+                        { name: "关羽" },
+                        "   ",
+                        "",
+                        { characterName: "" },
+                        null,
+                    ],
+                },
+            ],
+        };
+        const task = storyboardTask(JSON.stringify({ mode: "text", text: JSON.stringify(payload) }));
+        expect(storyboardRowsFromTask(task).rows[0].characters).toEqual([
+            { characterName: "刘备", characterAssetId: "asset-liu", characterVersionId: "v-1", characterDescription: "织席贩履" },
+            { characterName: "关羽" },
+        ]);
     });
 
     test("text 内层被 ```json 代码块包裹时仍可解析", () => {

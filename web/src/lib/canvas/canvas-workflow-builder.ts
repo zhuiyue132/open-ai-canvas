@@ -102,7 +102,8 @@ export function buildCanvasWorkflowOps(input: CanvasWorkflowInput, snapshot: Can
             model: generationModelForNode(type, config),
             ...(node.kind === "character_three_view" ? { characterView: "multi" } : {}),
             ...(node.referenceRefs?.length || node.referenceNodeIds?.length ? {
-                referenceNodeIds: [
+                // 节点级参考统一写 referenceAssetNodeIds：预演台/引用组消费的字段，后端审批校验也读它。
+                referenceAssetNodeIds: [
                     ...(node.referenceRefs || []).map((ref) => ids.get(ref)).filter((id): id is string => Boolean(id)),
                     ...(node.referenceNodeIds || []),
                 ],

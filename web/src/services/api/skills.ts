@@ -241,15 +241,14 @@ async function readAddedSkillsWithRetry() {
 }
 
 function normalizeAddedSkillReference(skill: AddedSkillReference): Skill {
-    // 兼容旧后端/测试桩返回的最小关系对象；正式接口返回完整的轻量引用时
-    // 才补齐宽 Skill 类型的展示默认值。
-    if (!skill.skillName && !skill.versionId) return skill as unknown as Skill;
+    // 旧后端/测试桩只返回最小关系对象（skillId + isAdded），正式接口返回轻量引用；
+    // 两者都补齐宽 Skill 类型的展示默认值，避免把不完整对象当成 Skill 透传给 UI。
     return {
         skillId: skill.skillId,
-        skillName: skill.skillName,
-        description: skill.description,
-        versionId: skill.versionId,
-        version: skill.version,
+        skillName: skill.skillName || "",
+        description: skill.description || "",
+        versionId: skill.versionId || "",
+        version: skill.version || "",
         contentHash: "",
         fileCount: 0,
         totalBytes: 0,

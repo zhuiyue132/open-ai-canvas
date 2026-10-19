@@ -298,7 +298,7 @@ func TestCreationApprovedUpdateDoesNotOverwriteLaterManualEdit(t *testing.T) {
 
 func TestCreationMediaScopeRejectsChangedModelSpecAndReferences(t *testing.T) {
 	now := time.Now()
-	ops := []CreationCanvasOp{{Type: "add_node", ID: "v", NodeType: "video", Metadata: map[string]any{"prompt": "短片", "model": "managed-video", "size": "9:16", "seconds": "15", "referenceNodeIds": []any{"ref"}}}}
+	ops := []CreationCanvasOp{{Type: "add_node", ID: "v", NodeType: "video", Metadata: map[string]any{"prompt": "短片", "model": "managed-video", "size": "9:16", "seconds": "15", "referenceAssetNodeIds": []any{"ref"}}}}
 	b, _ := json.Marshal(ops)
 	run := &model.CreationRun{CanvasID: "canvas", Status: "running", ApprovedProposalVersion: 1, ApprovedProposalHash: "hash", ApprovedOperationsJSON: string(b), ApprovedAt: &now}
 	request := CreateTaskRequest{Type: "canvas_video", ProjectID: "canvas", Prompt: "短片", Model: "managed-video", Input: map[string]any{"nodeId": "v", "config": map[string]any{"size": "9:16", "videoSeconds": "15"}, "referenceImages": []any{map[string]any{"id": "ref"}}}}
@@ -318,6 +318,22 @@ func TestCreationMediaScopeRejectsChangedModelSpecAndReferences(t *testing.T) {
 	request.Input["referenceImages"] = []any{map[string]any{"id": "other"}}
 	if err := validateCreationSubmissionScope(run, 1, request); err == nil {
 		t.Fatal("reference changed")
+	}
+}
+
+// 旧版已批准方案的持久化操作写的是 referenceNodeIds；升级后提交仍要能通过参考校验。
+func TestCreationMediaScopeAcceptsLegacyReferenceNodeField(t *testing.T) {
+	now := time.Now()
+	ops := []CreationCanvasOp{{Type: "add_node", ID: "v", NodeType: "video", Metadata: map[string]any{"prompt": "短片", "model": "managed-video", "size": "9:16", "seconds": "15", "referenceNodeIds": []any{"ref"}}}}
+	b, _ := json.Marshal(ops)
+	run := &model.CreationRun{CanvasID: "canvas", Status: "running", ApprovedProposalVersion: 1, ApprovedProposalHash: "hash", ApprovedOperationsJSON: string(b), ApprovedAt: &now}
+	request := CreateTaskRequest{Type: "canvas_video", ProjectID: "canvas", Prompt: "短片", Model: "managed-video", Input: map[string]any{"nodeId": "v", "config": map[string]any{"size": "9:16", "videoSeconds": "15"}, "referenceImages": []any{map[string]any{"id": "ref"}}}}
+	if err := validateCreationSubmissionScope(run, 1, request); err != nil {
+		t.Fatal(err)
+	}
+	request.Input["referenceImages"] = []any{map[string]any{"id": "other"}}
+	if err := validateCreationSubmissionScope(run, 1, request); err == nil {
+		t.Fatal("legacy reference changed but accepted")
 	}
 }
 

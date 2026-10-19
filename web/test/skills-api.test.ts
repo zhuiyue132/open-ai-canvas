@@ -47,9 +47,9 @@ test("a pending skills response cannot replace the cache after installation", as
         const fresh = await listAddedSkills();
         resolveStale?.(envelope([]));
         await pending;
-        // normalizeAddedSkillReference 对旧后端/测试桩返回的最小关系对象直接透传（src 内已用 as unknown as Skill），
-        // 因此这里的期望值就是最小引用形态。
-        expect(fresh.skills).toEqual([{ skillId: "preset", isAdded: true }] as unknown as typeof fresh.skills);
+        // 旧后端/测试桩的最小关系对象也会补齐 Skill 展示默认值，不再以不完整对象透传。
+        expect(fresh.skills).toMatchObject([{ skillId: "preset", isAdded: true, skillName: "", versionId: "", syncStatus: "synced" }]);
+        expect(fresh.skills[0]?.addedCount).toBe(0);
         expect((await listAddedSkills()).skills).toEqual(fresh.skills);
         expect(reads).toBe(2);
     } finally {

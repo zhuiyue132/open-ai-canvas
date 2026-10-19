@@ -535,7 +535,11 @@ func validateCreationSubmissionScope(run *model.CreationRun, version int64, req 
 				return creationConflict("生成规格与已批准方案不同")
 			}
 		}
-		refs, _ := meta["referenceNodeIds"].([]any)
+		// 节点级参考现为 referenceAssetNodeIds；旧版已批准方案的持久化操作仍写 referenceNodeIds。
+		refs, _ := meta["referenceAssetNodeIds"].([]any)
+		if len(refs) == 0 {
+			refs, _ = meta["referenceNodeIds"].([]any)
+		}
 		images, _ := req.Input["referenceImages"].([]any)
 		if len(refs) != len(images) {
 			return creationConflict("参考素材数量与已批准方案不同")

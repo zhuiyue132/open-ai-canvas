@@ -126,8 +126,8 @@ describe("画布 operations 生成", () => {
         } as never;
         const repaired = repairPendingCanvasMutationRequest(legacy, canvas({ projectId: "" }), canvas({ projectId: undefined }));
         expect(repaired.mutationId).toBe("m-3");
-        // 旧 journal 里的节点只是部分字段，修复后原样保留；断言的是修复后的线格式。
-        expect(repaired.operations).toEqual([{ type: "create_node", node: { id: "node-1" } }] as unknown as typeof repaired.operations);
+        // 旧 journal 的 create_node 只带部分节点字段，修复后原样保留；这里只断言保留下来的操作与其节点 id。
+        expect(repaired.operations).toMatchObject([{ type: "create_node", node: { id: "node-1" } }]);
     });
     test("修复旧 journal：缺失的可选字段基线编码为 null", () => {
         const legacy = JSON.parse(JSON.stringify({ mutationId: "m-2", operations: [{ type: "set_field", field: "timeline", value: { tracks: [] }, beforeValue: undefined }] }));

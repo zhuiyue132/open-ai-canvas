@@ -65,6 +65,7 @@ function clear(value: JsonValue, missing: Set<string>, serverReported: boolean, 
     return output;
 }
 
-export function clearMissingCanvasResources<T>(value: T, missingIds: Set<string>, _scope = "", serverReported = false): T {
-    return clear(value as unknown as JsonValue, missingIds, serverReported) as T;
+export function clearMissingCanvasResources(value: JsonValue, missingIds: Set<string>, _scope = "", serverReported = false): JsonValue | undefined {
+    // 清理会删掉失效的媒体定位字段，返回的是清理后的线格式，不再声称与入参同型。
+    return clear(value, missingIds, serverReported);
 }

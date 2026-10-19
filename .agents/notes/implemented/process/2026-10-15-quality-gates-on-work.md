@@ -30,7 +30,7 @@ Status: implemented
 - 新增 `vulnerability-scan` job：gitleaks 只扫本次推送的提交范围（`BASE_SHA..HEAD_SHA`，无法解析 base 时退化为 `HEAD~1..HEAD`），govulncheck 扫 Go 依赖，`bun audit` 扫 npm 依赖。
 - 依赖扫描的拦截线按各自能达到的"干净"定义拆分：
   - **Go 拦截**：`govulncheck ./...` 直接作为门。它只认**可达**漏洞，工具链升到 Go 1.26 并升级 `golang.org/x/net v0.60.0` / `x/text v0.42.0` 后输出 `No vulnerabilities found`（升级动机与代价见 [仓库产物与工具链版本](2026-10-15-repo-artifacts-and-toolchain-pins.md)）。
-  - **npm 分两层**：`bun audit --audit-level=critical` 拦截，全量 `bun audit` 只报告。一轮 overrides 补齐后公告数从 112 条 / 31 包降到 12 条 / 5 包、critical 归零；剩下的 high/moderate 里，`braces` 与 `sprintf-js` 上游根本没有修复版本，`nanoid`（`@excalidraw` 内部的 3.x/4.x 副本）、`katex`、`fflate`（`three-stdlib` 内部）必须先升级被刻意 pin 的直接依赖才能修，所以拦 high 需要一张长期 ignore 名单，收益不抵维护成本。
+  - **npm 分两层**：`bun audit --audit-level=critical` 拦截，全量 `bun audit` 只报告。一轮 overrides 补齐后公告数从 112 条 / 31 包降到 12 条 / 5 包、critical 归零；2026-10-19 再用平铺 override 补齐 `nanoid 3.3.18`、`fflate 0.8.3`、`katex 0.18.11`，降到 **2 条（1 high / 1 moderate）**：`braces`（来自 sass→chokidar、shadcn→fast-glob→micromatch）与 `sprintf-js`（来自 argparse）在 npm 上都**没有修复版本**（各自 latest 就是 3.0.3 / 1.1.3），且两者的调用链都在构建与 CLI 工具里，`dist/` 产物中搜不到 `micromatch`/`fill-range`/`argparse`/`vsprintf`。所以拦 high 仍需要长期 ignore 名单，收益不抵维护成本。
 - 新增 `.github/scripts/check-env-docs.py` 挂到 backend job：后端读到的每个 `CANVAS_*` 必须出现在 `.env.example`、`README.md`、`AGENTS.md`、`SECURITY.md` 或 `docs/**` 里。
 - dependabot 补齐 `github-actions`（`/`）与 `docker`（`/`、`/backend`、`/yingce-agent`），并把 `backend/agent-runtime/pi` 的 npm 依赖纳入。
 
@@ -49,7 +49,7 @@ Status: implemented
 - **收益**：`work` 的每次推送都会得到后端测试、前端类型/构建/测试/E2E、支付插件产物、部署配置、密钥与依赖漏洞的机械判定；打包错误与新增测试的类型错误在推送阶段就被拦住；`main` 与发布流程的行为完全不变。
 - **代价与已知上限**：
   - 存量测试类型欠账曾长期留在树里（提出时 163 项 / 56 个文件），棘轮只保证新增不增长；2026-10-19 已按六类清零并换成整目录门禁，欠账与棘轮同时收摊（见 [测试类型欠账清零](../testing/2026-10-19-test-typecheck-zero-debt.md)）。
-  - **npm 侧只拦 critical，high/moderate 靠报告与 dependabot。** 这一档缺口是已知的：12 条残留里没有可用的自动化修法。重访信号：`bun` 升到真正支持嵌套 override 的版本（1.3.9 会**静默忽略** `parent>dep` 与 `pkg@range` 两种写法——实测 package.json 里写完、`bun install` 报 `no changes`、lock 仍是 `lockfileVersion 1`），或 `@excalidraw` 升级后，把拦截线提到 high。
+  - **npm 侧只拦 critical，high/moderate 靠报告与 dependabot。** 这一档缺口是已知的：清零后残留的 `braces`（high）与 `sprintf-js`（moderate）上游都没有修复版本，且只出现在构建/CLI 链路里。重访信号：`bun` 升到真正支持嵌套 override 的版本（1.3.9 会**静默忽略** `parent>dep` 与 `pkg@range` 两种写法——实测 package.json 里写完、`bun install` 报 `no changes`、lock 仍是 `lockfileVersion 1`），或 `@excalidraw` 升级后，把拦截线提到 high。
   - compose 校验用占位值，只能证明结构与插值成立，不证明镜像、digest 真实存在或服务能起。
   - `--add-host backend:127.0.0.1` 只让 `nginx -t` 通过，不代表运行时 DNS 正确。
   - 每次 push 增加约 `bun run build` 5s、部署校验数十秒、govulncheck 40s + 工具下载、gitleaks 数秒。
