@@ -1,7 +1,9 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
+// @ts-expect-error Bun 的 text 加载器要求保留 .tsx 扩展名（未开 allowImportingTsExtensions），且该形态没有默认导出声明。
 import panelSource from "../src/components/canvas/canvas-cloud-agent-panel.tsx" with { type: "text" };
+// @ts-expect-error 同上：text 加载器 + 扩展名导入在 tsc 下不可表达。
 import partsSource from "../src/components/canvas/canvas-cloud-agent-panel-parts.tsx" with { type: "text" };
 
 // 同一路径一旦被 text 加载器注册，bun 1.3.9 的模块缓存会让其它测试的具名导入失效，这里直接读源码文本。

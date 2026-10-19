@@ -268,7 +268,7 @@ test("两端在两秒轮询前同时输入：拒绝端保持可编辑，定时�
     await sync.refreshCanvasAfterAgent("canvas", "sync");
     await peerSync.refreshCanvasAfterAgent("canvas", "sync");
     expect(fixture.writes.length + peer.fixture.writes.length).toBe(writes);
-    expect(useCanvasStore.getState().projects.map((project) => project.id)).toEqual(["canvas"]);
+    expect(useCanvasStore.getState().projects.map((project: CanvasProject) => project.id)).toEqual(["canvas"]);
     expect(peer.useCanvasStore.getState().projects.map((project: CanvasProject) => project.id)).toEqual(["canvas"]);
 });
 

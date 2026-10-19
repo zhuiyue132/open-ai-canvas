@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 // Bun 直接执行 TypeScript 测试时需要保留扩展名；生产 tsconfig 不包含 test/。
+// @ts-expect-error Node 原生测试运行器要求保留 .ts 扩展名（未开 allowImportingTsExtensions）。
 import { DEFAULT_VIDEO_PROMPT_MAX_CHARS, defaultModelCapabilityConfig, normalizeImageValue, normalizeVideoValue } from "../src/lib/model-capabilities.ts";
+// @ts-expect-error 同上：保留扩展名的导入在 tsc 下不可表达。
 import { imageTierAvailable, imageResolutionTiers } from "../src/lib/image-size-presets.ts";
+// @ts-expect-error 同上：保留扩展名的导入在 tsc 下不可表达。
 import { workflowFieldIsRatioChoices } from "../src/lib/model-capabilities-workflow.ts";
 
 test("workflow ratio choices use the direct selection control only for ratio values", () => {
