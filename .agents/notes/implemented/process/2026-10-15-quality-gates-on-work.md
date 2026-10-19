@@ -49,7 +49,7 @@ Status: implemented
 - **收益**：`work` 的每次推送都会得到后端测试、前端类型/构建/测试/E2E、支付插件产物、部署配置、密钥与依赖漏洞的机械判定；打包错误与新增测试的类型错误在推送阶段就被拦住；`main` 与发布流程的行为完全不变。
 - **代价与已知上限**：
   - 存量测试类型欠账曾长期留在树里（提出时 163 项 / 56 个文件），棘轮只保证新增不增长；2026-10-19 已按六类清零并换成整目录门禁，欠账与棘轮同时收摊（见 [测试类型欠账清零](../testing/2026-10-19-test-typecheck-zero-debt.md)）。
-  - **npm 侧只拦 critical，high/moderate 靠报告与 dependabot。** 这一档缺口是已知的：清零后残留的 `braces`（high）与 `sprintf-js`（moderate）上游都没有修复版本，且只出现在构建/CLI 链路里。重访信号：`bun` 升到真正支持嵌套 override 的版本（1.3.9 会**静默忽略** `parent>dep` 与 `pkg@range` 两种写法——实测 package.json 里写完、`bun install` 报 `no changes`、lock 仍是 `lockfileVersion 1`），或 `@excalidraw` 升级后，把拦截线提到 high。
+  - **npm 侧只拦 critical，high/moderate 靠报告与 dependabot。** 这一档缺口是已知的：清零后残留的 `braces`（high）与 `sprintf-js`（moderate）上游都没有修复版本，且只出现在构建/CLI 链路里。本地复现用 `cd web && bun run audit`（完整报告，有残留退出 1）或 `bun run audit:gate`（与 CI 同口径只拦 critical）；两个脚本都固定 npmjs registry，避免本机镜像源下 `bun audit` 404。重访信号：`bun` 升到真正支持嵌套 override 的版本（1.3.9 会**静默忽略** `parent>dep` 与 `pkg@range` 两种写法——实测 package.json 里写完、`bun install` 报 `no changes`、lock 仍是 `lockfileVersion 1`），或 `@excalidraw` 升级后，把拦截线提到 high。
   - compose 校验用占位值，只能证明结构与插值成立，不证明镜像、digest 真实存在或服务能起。
   - `--add-host backend:127.0.0.1` 只让 `nginx -t` 通过，不代表运行时 DNS 正确。
   - 每次 push 增加约 `bun run build` 5s、部署校验数十秒、govulncheck 40s + 工具下载、gitleaks 数秒。
