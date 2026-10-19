@@ -9,7 +9,6 @@
         "test:gate": "bun test test/tiptap-dependency-versions.test.ts test/admin-ui-regressions.test.ts test/announcement-prompt-regressions.test.ts test/password-reset.test.ts test/oss-settings.test.ts test/channel-model-editor-form.test.ts test/channel-model-price-tier-form.test.ts test/admin-logical-models.test.ts && bun test test/canvas-grid-viewport.test.tsx",
         "typecheck": "tsc --noEmit",
         "typecheck:test": "tsc -p tsconfig.test.json",
-        "typecheck:test:new": "bun scripts/check-new-test-types.mjs",
         "test:canvas": "bun test test/canvas-media-performance.test.ts test/canvas-node-title-interaction.test.ts test/canvas-spatial-index.test.ts",
         "test": "bun test",
         "test:previs:e2e": "bun scripts/previs-p0-chrome-e2e.mjs",

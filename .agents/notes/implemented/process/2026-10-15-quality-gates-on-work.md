@@ -24,8 +24,8 @@ Status: implemented
 - 支付插件的双架构 smoke 由「仅 PR」改为「PR 或 `work` 推送」。发布流程在本仓库停用，若仍限定 PR，ARM64 支付产物在二开仓库永远拿不到验收。
 - web job 增加 `bun run build`（Typecheck 步骤保留，TypeScript 7 的冷启动 typecheck 实测 3.6s，重复一次比丢掉打包门便宜）。
 - 测试类型采用**只拦新增的棘轮**：装 `@types/bun@1.3.9`（与运行时同版本，精确锁），新增 `web/tsconfig.test.json` 与两个脚本——
-  - `bun run typecheck:test`：整目录检查，用来量化存量欠账（当前 172 个错误 / 58 个文件，全部在 `test/` 下）；
-  - `bun run typecheck:test:new`：只对本次 diff 新增的测试文件（含未跟踪文件）拦类型错误，CI 用 `BASE_SHA` 判定范围。
+  - `bun run typecheck:test`：整目录检查。存量欠账已在 2026-10-19 清零并转为 CI 门禁，见 [测试类型欠账清零](../testing/2026-10-19-test-typecheck-zero-debt.md)；
+  - `bun run typecheck:test:new`：只对本次 diff 新增的测试文件（含未跟踪文件）拦类型错误，CI 用 `BASE_SHA` 判定范围。**2026-10-19 已撤掉**：存量清零后 CI 直接跑整目录检查，脚本与 `typecheck:test:new` 一并删除，见同一篇笔记。
 - 新增 `deploy-config` job：用占位 env 对 5 份 compose 逐份跑 `docker compose config --quiet`，再对 `docker-compose.deploy.yml`、`docker-compose.server.yml` 各叠加一次 `docker-compose.build.yml`；`nginx.conf` 用 Dockerfile 里解析出的 nginx 镜像跑 `nginx -t`，并加 `--add-host backend:127.0.0.1`（nginx 在加载配置时就解析 `proxy_pass` 上游）。
 - 新增 `vulnerability-scan` job：gitleaks 只扫本次推送的提交范围（`BASE_SHA..HEAD_SHA`，无法解析 base 时退化为 `HEAD~1..HEAD`），govulncheck 扫 Go 依赖，`bun audit` 扫 npm 依赖。
 - 依赖扫描的拦截线按各自能达到的"干净"定义拆分：
@@ -48,13 +48,13 @@ Status: implemented
 
 - **收益**：`work` 的每次推送都会得到后端测试、前端类型/构建/测试/E2E、支付插件产物、部署配置、密钥与依赖漏洞的机械判定；打包错误与新增测试的类型错误在推送阶段就被拦住；`main` 与发布流程的行为完全不变。
 - **代价与已知上限**：
-  - 存量测试类型欠账 163 项 / 56 个文件仍在树里，棘轮只保证新增不增长；编辑旧测试文件不会被强制修（这是有意的：单文件平均 1.25 个错误，强制修会让改一行测试变成修一整片）。
+  - 存量测试类型欠账曾长期留在树里（提出时 163 项 / 56 个文件），棘轮只保证新增不增长；2026-10-19 已按六类清零并换成整目录门禁，欠账与棘轮同时收摊（见 [测试类型欠账清零](../testing/2026-10-19-test-typecheck-zero-debt.md)）。
   - **npm 侧只拦 critical，high/moderate 靠报告与 dependabot。** 这一档缺口是已知的：12 条残留里没有可用的自动化修法。重访信号：`bun` 升到真正支持嵌套 override 的版本（1.3.9 会**静默忽略** `parent>dep` 与 `pkg@range` 两种写法——实测 package.json 里写完、`bun install` 报 `no changes`、lock 仍是 `lockfileVersion 1`），或 `@excalidraw` 升级后，把拦截线提到 high。
   - compose 校验用占位值，只能证明结构与插值成立，不证明镜像、digest 真实存在或服务能起。
   - `--add-host backend:127.0.0.1` 只让 `nginx -t` 通过，不代表运行时 DNS 正确。
   - 每次 push 增加约 `bun run build` 5s、部署校验数十秒、govulncheck 40s + 工具下载、gitleaks 数秒。
   - 棘轮的 `BASE_SHA` 在"新分支首推"时会退化成只检查最后一个提交。
-  - **每次同步上游都要补一轮收尾**：合并 `upstream/main` 后，上游新增的测试文件全部落进 `typecheck:test:new` 的"新增"范围，而上游代码不是 prettier-clean（格式门只在 base 版本同样不干净时才跳过）。同步 `48543609` 实测：8 个文件格式不通过（6 个新增 + 2 个上游改动后失格式），17 个新增测试文件里 3 个共 13 处类型错误（`happy-dom` 的 `Event` 缺 `isTrusted/returnValue/srcElement` 因此与 lib.dom 的 `Event` 不兼容、夹具缺 `CanvasProject` 必填字段）。处理方式是 `prettier --write` 这些文件、在派发边界做一次 `Event` 转换、给夹具补齐字段；放宽门或把它们塞进存量豁免会削弱棘轮本身。
+  - **每次同步上游都要补一轮收尾**：合并 `upstream/main` 后，上游带来的测试文件都会落进整目录门的检查范围，而上游代码不是 prettier-clean（格式门只在 base 版本同样不干净时才跳过）。同步 `48543609` 实测：8 个文件格式不通过（6 个新增 + 2 个上游改动后失格式），17 个新增测试文件里 3 个共 13 处类型错误（`happy-dom` 的 `Event` 缺 `isTrusted/returnValue/srcElement` 因此与 lib.dom 的 `Event` 不兼容、夹具缺 `CanvasProject` 必填字段）。处理方式是 `prettier --write` 这些文件、在派发边界做一次 `Event` 转换、给夹具补齐字段；放宽门或把它们塞进存量豁免会削弱棘轮本身。
 
 ## Verification
 

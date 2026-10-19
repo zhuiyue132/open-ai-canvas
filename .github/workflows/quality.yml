@@ -249,12 +249,10 @@ jobs:
         run: bun scripts/check-changed-formatting.mjs
       - name: Typecheck
         run: bun run typecheck
-      # 测试文件长期不在 tsconfig.json 的 include 里。整目录纳入会先暴露 56 个文件的存量类型
-      # 错误，所以这里只拦新增：新出现的测试文件必须类型干净。欠账用 bun run typecheck:test 量化。
-      - name: Typecheck new test files
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: bun run typecheck:test:new
+      # 测试文件不在 tsconfig.json 的 include 里。存量欠账（172 处 / 58 文件）已于 2026-10-19 清零，
+      # 这里直接跑整目录检查：任何测试文件的类型错误都会拦住 CI，不再只拦新增文件。
+      - name: Typecheck test files
+        run: bun run typecheck:test
       # 生产打包只在镜像构建里发生，而镜像构建只在发布流程（本仓库已停用）和本地执行。
       # 不在这里跑 `bun run build`，rolldown 的 chunk 分组和产物路径错误会一路过关到部署。
       - name: Build production bundle

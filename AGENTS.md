@@ -151,7 +151,7 @@ cd web && bun run dev
 项目在 `work` 分支的每次推送和每个 PR 上都会跑 `.github/workflows/quality.yml`（后端 go test + PostgreSQL/Redis 依赖用例、前端 typecheck/build/lint/test/P0 E2E、支付插件产物、Compose 与 nginx 配置校验、依赖漏洞与密钥扫描）。本地验证用来在推送前拦住问题，以及覆盖 CI 不做的浏览器验收；沿用下面的命令，不要把“CI 会跑”当作不验证的理由。
 
 - 前端：`cd web && bun run build`；专项测试用 `bun test ...`，本地先跑关键回归可 `bun run test:gate`。UI 退场规则用 `bun run lint`（只禁 antd Empty 和静态 `Modal.confirm`，不是风格检查）。
-- 前端测试类型：新增测试文件必须类型干净，由 `cd web && bun run typecheck:test:new` 把关；`bun run typecheck:test` 会列出全部存量欠账（当前仍有几十个文件待清，见笔记）。
+- 前端测试类型：`cd web && bun run typecheck:test`（`tsc -p tsconfig.test.json`）是整目录门禁，CI 直接跑；存量 172 处已在 2026-10-19 清零，此后新增测试和上游同步带来的任何测试类型错误都会拦住推送（决策见 `.agents/notes/implemented/testing/2026-10-19-test-typecheck-zero-debt.md`）。
 - 本地工具链版本由 `.tool-versions` 声明（bun 1.3.9、Node 22.19.0、Go 1.26.0），与 CI 和镜像一致。Bun 低于 1.3.9 时 `TextDecoder` 不支持 gb18030，`web/test/canvas-document.test.ts` 的回退用例会失败：先核对 `bun --version`，不要把运行时差异当成代码缺陷。
 - 后端：`cd backend && go test ./...`；涉及 PostgreSQL、资源、任务或权限时补对应集成/冒烟路径。macOS 需要可用的 CGO 工具链（项目直接依赖需要 cgo 的 sqlite 驱动），工具链不可用时整个套件会以 `runtime/cgo` 报错集体 `build failed`，不是代码问题。
 - 部署面：改动 `docker-compose*.yml` 或 `nginx.conf` 后，本地先跑 `docker compose --env-file <占位 env> -f <file> config --quiet` 与 `docker run --rm --add-host backend:127.0.0.1 -v $PWD/nginx.conf:/etc/nginx/conf.d/default.conf:ro nginx:1.27-alpine nginx -t`。
