@@ -60,6 +60,10 @@ afterAll(() => {
     }
 });
 
+// 夹具把 happy-dom 实例挂到全局，但静态类型仍来自 lib.dom，两者 Event 结构不兼容
+// （happy-dom 缺 isTrusted/returnValue/srcElement），只在派发边界做一次转换。
+const dispatch = (target: EventTarget, event: unknown) => target.dispatchEvent(event as Event);
+
 function mount() {
     const host = document.createElement("div");
     document.body.append(host);
@@ -114,7 +118,7 @@ test("real layer labels each window and follows live pan/zoom without moving doc
         const cursor = f.overlay.querySelector('[data-peer-label="设备2"]') as HTMLElement;
         expect(cursor.style.transform).toBe("translate3d(200px, 100px, 0)");
         expect((f.overlay.querySelector(".canvas-collaboration-drag") as HTMLElement).style.width).toBe("120px");
-        await act(async () => f.canvas.dispatchEvent(new dom.CustomEvent(CANVAS_GRAPHICS_VIEWPORT_PREVIEW_EVENT, { detail: { x: 0, y: 10, k: 1.5 } })));
+        await act(async () => dispatch(f.canvas, new dom.CustomEvent(CANVAS_GRAPHICS_VIEWPORT_PREVIEW_EVENT, { detail: { x: 0, y: 10, k: 1.5 } })));
         flushFrames();
         expect(cursor.style.transform).toBe("translate3d(300px, 460px, 0)");
         expect(f.nodesRef.current[0].position).toEqual({ x: 20, y: 30 });
@@ -141,8 +145,8 @@ test("real pointer/drag events broadcast world coordinates and blur clears prese
             }),
         );
         await act(async () => {
-            f.canvas.dispatchEvent(new dom.PointerEvent("pointermove", { clientX: 210, clientY: 120, bubbles: true }));
-            f.canvas.dispatchEvent(new dom.CustomEvent(CANVAS_NODE_DRAG_PREVIEW_EVENT, { detail: { x: 50, y: -10, nodeIds: new Set(["node"]) } }));
+            dispatch(f.canvas, new dom.PointerEvent("pointermove", { clientX: 210, clientY: 120, bubbles: true }));
+            dispatch(f.canvas, new dom.CustomEvent(CANVAS_NODE_DRAG_PREVIEW_EVENT, { detail: { x: 50, y: -10, nodeIds: new Set(["node"]) } }));
             await new Promise((resolve) => setTimeout(resolve, 60));
         });
         expect(socket.sent.at(-1).cursor).toEqual({ x: 200, y: 300 });
@@ -164,8 +168,8 @@ test("one remaining device removes all labels and stops pointer and viewport wor
         await act(async () => socket.receive({ type: "welcome", selfId: "self", peers: [self] }));
         const sent = socket.sent.length;
         for (let i = 0; i < 100; i++) {
-            f.canvas.dispatchEvent(new dom.PointerEvent("pointermove", { clientX: i, clientY: 100, bubbles: true }));
-            f.canvas.dispatchEvent(new dom.CustomEvent(CANVAS_GRAPHICS_VIEWPORT_PREVIEW_EVENT, { detail: { x: i, y: 0, k: 1 } }));
+            dispatch(f.canvas, new dom.PointerEvent("pointermove", { clientX: i, clientY: 100, bubbles: true }));
+            dispatch(f.canvas, new dom.CustomEvent(CANVAS_GRAPHICS_VIEWPORT_PREVIEW_EVENT, { detail: { x: i, y: 0, k: 1 } }));
         }
         flushFrames();
         expect(f.reads).toBe(0);
@@ -180,7 +184,7 @@ test("one remaining device removes all labels and stops pointer and viewport wor
         expect(f.overlay.querySelector(".canvas-collaboration-members")).toBeNull();
         expect(f.overlay.querySelector(".canvas-collaboration-cursor")).toBeNull();
         const reads = f.reads;
-        f.canvas.dispatchEvent(new dom.PointerEvent("pointermove", { clientX: 300, clientY: 100, bubbles: true }));
+        dispatch(f.canvas, new dom.PointerEvent("pointermove", { clientX: 300, clientY: 100, bubbles: true }));
         expect(f.reads).toBe(reads);
         expect(frames.size).toBe(0);
     } finally {
@@ -211,8 +215,8 @@ test("high frequency presence and viewport frames reuse graphics without React c
         await act(async () => {
             for (let i = 0; i < 100; i++) {
                 socket.receive({ type: "peer", peer: { ...remote, cursor: { x: i, y: 100 }, drag: [{ ...remote.drag[0], x: i }] } });
-                f.canvas.dispatchEvent(new dom.PointerEvent("pointermove", { clientX: i, clientY: 100, bubbles: true }));
-                f.canvas.dispatchEvent(new dom.CustomEvent(CANVAS_GRAPHICS_VIEWPORT_PREVIEW_EVENT, { detail: { x: i, y: 0, k: 1 } }));
+                dispatch(f.canvas, new dom.PointerEvent("pointermove", { clientX: i, clientY: 100, bubbles: true }));
+                dispatch(f.canvas, new dom.CustomEvent(CANVAS_GRAPHICS_VIEWPORT_PREVIEW_EVENT, { detail: { x: i, y: 0, k: 1 } }));
                 flushFrames();
             }
         });
