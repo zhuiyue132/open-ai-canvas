@@ -269,7 +269,7 @@ describe("video canvas controls", () => {
                     "content-range": `bytes 0-${movie.byteLength - 1}/${movie.byteLength}`,
                     "content-length": String(movie.byteLength),
                 },
-            })) as typeof fetch;
+            })) as unknown as typeof fetch;
         try {
             expect(await detectVideoAudioTrackFromUrl(`https://media.example/silent-${movie.byteLength}.mp4`)).toBe(false);
         } finally {

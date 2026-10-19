@@ -24,7 +24,8 @@ const model = {
         unitPriceMicrocredits: 4_000 + index * 1_000,
         costPricing: { configured: true, unitPriceMicrocredits: 3_000 },
     })),
-} as ChannelModel;
+    // 表格只读价格档与显示名；这里给出局部模型，替身边界统一收口。
+} as unknown as ChannelModel;
 
 function render(items = [model], rows = modelRepriceRows(items)) {
     return renderToStaticMarkup(<ChannelModelRepriceTable items={items} rows={rows} channelName="所属渠道" decimalPlaces={3} disabled={false} onSaleChange={() => {}} />);

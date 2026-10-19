@@ -76,7 +76,8 @@ describe("画布 operations 生成", () => {
 
     test("旧 journal 的空节点补丁从原快照恢复，保留 mutationId 和有效请求", () => {
         const before = canvas({ nodes: [{ id: "node", metadata: {} }] as CanvasProject["nodes"] });
-        const after = canvas({ nodes: [{ id: "node", metadata: { title: "新标题" } }] as CanvasProject["nodes"] });
+        // 旧 journal 的节点是部分字段（title 已迁出 metadata）；这里按线格式夹具处理。
+        const after = canvas({ nodes: [{ id: "node", metadata: { title: "新标题" } }] as unknown as CanvasProject["nodes"] });
         const broken = { mutationId: "node-mutation", operations: [{ type: "patch_node", id: "node", patch: { "metadata.title": "新标题" }, before: {} }] } as Parameters<typeof repairPendingCanvasMutationRequest>[0];
         const repaired = repairPendingCanvasMutationRequest(broken, before, after);
         expect(repaired.mutationId).toBe("node-mutation");

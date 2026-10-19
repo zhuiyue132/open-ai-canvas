@@ -38,7 +38,9 @@ describe("后台前台模型响应归一化", () => {
     test("保留当前响应中的线路和价格档", () => {
         const input = legacyModel();
         input.routes = [{ id: "route-1" } as AdminLogicalModel["routes"][number]];
-        input.priceTiers = [{ selector: { resolution: "720p" } } as AdminLogicalModel["priceTiers"][number]];
+        input.priceTiers = [
+            { selector: { resolution: "720p" }, resolution: "720p", videoSeconds: 0, billingMode: "fixed_request", unitPriceMicrocredits: 0, inputTokenPriceMicrocredits: 0, outputTokenPriceMicrocredits: 0, cachedTokenPriceMicrocredits: 0 },
+        ];
 
         const model = normalizeAdminLogicalModel(input);
 

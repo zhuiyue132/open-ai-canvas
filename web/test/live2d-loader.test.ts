@@ -24,7 +24,7 @@ test("Live2D loader restricts credentialed URLs, propagates failures and aborts 
         requests++;
         expect(options.credentials).toBe("include");
         return new Response('{"Version":3}', { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
     const context = { url, type: "json" } as Live2DLoaderContext;
     await run(context);
     expect(context.result).toEqual({ Version: 3 });
@@ -32,14 +32,14 @@ test("Live2D loader restricts credentialed URLs, propagates failures and aborts 
         await expect(run({ url: unsafe, type: "json" })).rejects.toThrow("本站模型接口");
     }
     expect(requests).toBe(1);
-    globalThis.fetch = (async () => new Response("denied", { status: 403 })) as typeof fetch;
+    globalThis.fetch = (async () => new Response("denied", { status: 403 })) as unknown as typeof fetch;
     await expect(run({ url, type: "json" })).rejects.toThrow("403");
 
     const target = new EventEmitter();
     globalThis.fetch = ((_url: unknown, options: RequestInit) =>
         new Promise((_resolve, reject) => {
             options.signal?.addEventListener("abort", () => reject(new Error("aborted")));
-        })) as typeof fetch;
+        })) as unknown as typeof fetch;
     const pending = run({ url, type: "json", target: target as unknown as Live2DLoaderContext["target"] });
     target.emit("destroy");
     await expect(pending).rejects.toThrow("aborted");

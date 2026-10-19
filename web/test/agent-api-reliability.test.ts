@@ -95,7 +95,7 @@ describe("Agent SSE recovery", () => {
         globalThis.fetch = (async () => {
             requests++;
             return new Response("", { status });
-        }) as typeof fetch;
+        }) as unknown as typeof fetch;
         const result = observe();
         expect(await result.done).toMatchObject({ status });
         expect(requests).toBe(1);
@@ -107,7 +107,7 @@ describe("Agent SSE recovery", () => {
         globalThis.fetch = (async () => {
             requests++;
             return stream(body);
-        }) as typeof fetch;
+        }) as unknown as typeof fetch;
         const result = observe();
         expect(await result.done).toBeInstanceOf(Error);
         expect(requests).toBe(5);
@@ -116,13 +116,13 @@ describe("Agent SSE recovery", () => {
 
     it("resumes the persisted cursor and deduplicates replayed events", async () => {
         const cursors: string[] = [];
-        globalThis.fetch = (async (url, init) => {
+        globalThis.fetch = (async (url: RequestInfo | URL, init?: RequestInit) => {
             const cursor = new URL(String(url)).searchParams.get("after")!;
             cursors.push(cursor);
             expect((init?.headers as Record<string, string>)["Last-Event-ID"]).toBe(cursor);
             if (cursors.length === 2) throw new TypeError("connection reset");
             return stream(cursors.length === 1 ? event(1) + snapshot("running") : event(1) + event(2) + snapshot("completed"));
-        }) as typeof fetch;
+        }) as unknown as typeof fetch;
         const result = observe();
         expect(await result.done).toBeUndefined();
         expect(cursors).toEqual(["0", "1", "1"]);
@@ -131,7 +131,7 @@ describe("Agent SSE recovery", () => {
 
     it("waits for durable cleanup after a terminal status", async () => {
         let requests = 0;
-        globalThis.fetch = (async () => stream(snapshot("cancelled", { cleanupPending: ++requests === 1 }))) as typeof fetch;
+        globalThis.fetch = (async () => stream(snapshot("cancelled", { cleanupPending: ++requests === 1 }))) as unknown as typeof fetch;
         const result = observe();
         expect(await result.done).toBeUndefined();
         expect(requests).toBe(2);
@@ -140,7 +140,7 @@ describe("Agent SSE recovery", () => {
 
     it("honors Retry-After rather than immediately retrying 429", async () => {
         let requests = 0;
-        globalThis.fetch = (async () => (++requests === 1 ? new Response("", { status: 429, headers: { "retry-after": "60" } }) : stream(snapshot("completed")))) as typeof fetch;
+        globalThis.fetch = (async () => (++requests === 1 ? new Response("", { status: 429, headers: { "retry-after": "60" } }) : stream(snapshot("completed")))) as unknown as typeof fetch;
         const result = observe();
         await result.done;
         expect(requests).toBe(2);
@@ -152,7 +152,7 @@ describe("Agent SSE recovery", () => {
         globalThis.fetch = (async () => {
             requests++;
             return new Response("", { status: 429, headers: { "retry-after": "600" } });
-        }) as typeof fetch;
+        }) as unknown as typeof fetch;
         const result = observe();
         expect(await result.done).toMatchObject({ status: 429 });
         expect(requests).toBe(1);
@@ -160,10 +160,10 @@ describe("Agent SSE recovery", () => {
 
     it("times out a stalled connection with a bounded retry budget", async () => {
         let requests = 0;
-        globalThis.fetch = (async (_url, init) => {
+        globalThis.fetch = (async (_url: RequestInfo | URL, init?: RequestInit) => {
             requests++;
             return new Promise<Response>((_resolve, reject) => init?.signal?.addEventListener("abort", () => reject(new Error("timeout")), { once: true }));
-        }) as typeof fetch;
+        }) as unknown as typeof fetch;
         expect(await observe({ timeoutMs: 10 }).done).toBeInstanceOf(Error);
         expect(requests).toBe(5);
     });
@@ -178,7 +178,7 @@ describe("Agent SSE recovery", () => {
                     },
                 }),
                 { headers: { "content-type": "text/event-stream" } },
-            )) as typeof fetch;
+            )) as unknown as typeof fetch;
         const result = observe();
         await new Promise((resolve) => nativeTimer(resolve, 5));
         result.stop();

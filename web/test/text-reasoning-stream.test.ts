@@ -33,7 +33,7 @@ function streamResponse(events: unknown[]) {
 }
 
 async function requestWithReasoning(config: AiConfig, events: unknown[]) {
-    globalThis.fetch = (async () => streamResponse(events)) as typeof fetch;
+    globalThis.fetch = (async () => streamResponse(events)) as unknown as typeof fetch;
     let content = "";
     let reasoning = "";
     const result = await requestImageQuestion(

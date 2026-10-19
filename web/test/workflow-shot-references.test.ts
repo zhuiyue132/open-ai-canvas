@@ -92,5 +92,6 @@ function detail(): ProjectDetail {
             { id: "reference-audio", shotId: "shot-1", assetVersionId: "version-audio", role: "reference", status: "linked", createdAt: "2026-08-29T00:00:02Z" },
             { id: "reference-other-shot", shotId: "shot-2", assetVersionId: "version-scene", role: "reference", status: "linked", createdAt: "2026-08-29T00:00:03Z" },
         ],
-    } as ProjectDetail;
+        // 分镜引用只读 assets/shotReferences，其余字段与替身无关；边界处统一收口。
+    } as unknown as ProjectDetail;
 }
