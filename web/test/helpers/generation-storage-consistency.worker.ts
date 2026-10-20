@@ -436,7 +436,7 @@ async function runCanvasBatchCommitRace(multiOutput = false, mask = false, reent
         setActiveUserScope("canvas-batch-commit-race");
         if (video) {
             const { primeResourceBlobCache } = await import("../../src/services/resource-blob-cache");
-            for (const index of [0, 1]) await primeResourceBlobCache(`resource:image-${index}`, new Blob(["test-video"], { type: "video/mp4" }), { createObjectURL: false });
+            for (const index of [0, 1]) await primeResourceBlobCache(`resource:image-${index}`, new Blob(["test-video"], { type: "video/mp4" }));
         }
         const { useCanvasStore, flushCanvasStorePersistence, CANVAS_STORE_KEY } = await import("../../src/stores/canvas/use-canvas-store");
         const { useAssetStore } = await import("../../src/stores/use-asset-store");

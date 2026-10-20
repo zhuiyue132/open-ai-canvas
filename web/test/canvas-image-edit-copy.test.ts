@@ -20,9 +20,9 @@ test("edit copy leaves source and task ownership intact, links the new node, and
     expect(copy.node.metadata?.taskId).toBeUndefined();
     expect(copy.connection).toMatchObject({ fromNodeId: "original", toNodeId: copy.node.id });
     const turned = applyCanvasImageRotation(copy.node, {
-        original: { content: "/original", storageKey: "resource:original", width: 1200, height: 800 },
+        original: { content: "/original", storageKey: "resource:original", width: 1200, height: 800, bytes: 1024, mimeType: "image/png" },
         quarterTurns: 1,
-        variants: { 1: { content: "/rotated", storageKey: "resource:rotated", width: 800, height: 1200 } },
+        variants: { 1: { content: "/rotated", storageKey: "resource:rotated", width: 800, height: 1200, bytes: 1024, mimeType: "image/png" } },
     });
     expect(turned.id).toBe(copy.node.id);
     expect(turned.metadata?.storageKey).toBe("resource:rotated");

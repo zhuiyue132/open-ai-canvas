@@ -16,11 +16,12 @@ const table: CanvasNodeData = {
     metadata: {
         batchTable: {
             operation: "creative",
+            concurrency: 10,
             referenceColumns: [
                 { id: "shared", label: "共同图片" },
                 { id: "individual", label: "各行图片" },
             ],
-            rows: Array.from({ length: 6 }, (_, i) => ({ id: `row-${i}`, prompt: `任务${i}`, inputNodeIds: [source.id, ""] })),
+            rows: Array.from({ length: 6 }, (_, i) => ({ id: `row-${i}`, enabled: true, prompt: `任务${i}`, inputNodeIds: [source.id, ""] })),
         },
     },
 };
@@ -46,7 +47,7 @@ describe("batch cell connection geometry", () => {
 
     test("insertion keeps stable row identity and moves its anchor by exactly one row", () => {
         const cell = batchCellAnchor(table, targetHandle)!;
-        const inserted = { ...table, metadata: { ...table.metadata, batchTable: { ...table.metadata!.batchTable!, rows: [{ id: "new", inputNodeIds: [], prompt: "" }, ...table.metadata!.batchTable!.rows] } } };
+        const inserted = { ...table, metadata: { ...table.metadata, batchTable: { ...table.metadata!.batchTable!, rows: [{ id: "new", enabled: true, inputNodeIds: [], prompt: "" }, ...table.metadata!.batchTable!.rows] } } };
         const moved = batchCellAnchor(inserted, targetHandle)!;
         expect(moved.y - cell.y).toBe(BATCH_ROW_HEIGHT);
         expect(moved.label).toBe("任务 3 · 参考图 2");

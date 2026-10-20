@@ -16,6 +16,7 @@ import {
     updateCustomCanvasAppearance,
     writeCanvasAppearanceDefault,
 } from "../src/lib/canvas/canvas-appearance";
+import type { CanvasAppearance } from "../src/lib/canvas/canvas-appearance";
 
 const storage = new Map<string, string>();
 let originalWindow: PropertyDescriptor | undefined;
@@ -80,7 +81,7 @@ describe("canvas appearance persistence and presets", () => {
     });
 
     test("preserves existing custom colors including explicitly black grids", () => {
-        const legacy = { mode: "custom", custom: { baseTheme: "dark", backgroundColor: "#111111", backgroundBrightness: -4, gridColor: "#000000", gridOpacity: 100 } };
+        const legacy: CanvasAppearance = { mode: "custom", custom: { baseTheme: "dark", backgroundColor: "#111111", backgroundBrightness: -4, gridColor: "#000000", gridOpacity: 100 } };
         expect(normalizeCanvasAppearance(legacy, "light")).toEqual(legacy);
         expect(resolveCanvasGridColor(normalizeCanvasAppearance(legacy, "light"), "light", "lines")).toBe("rgba(0,0,0,1)");
     });
