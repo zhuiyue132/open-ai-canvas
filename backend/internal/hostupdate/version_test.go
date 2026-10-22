@@ -18,6 +18,10 @@ func TestCompareVersions(t *testing.T) {
 		{"sha-5509b17", "v1.5.0", -1},
 		{"v1.5.0", "vsha-5509b17", 1},
 		{"v1.2.9", "v1.5.0", -1},
+		// 二开的日期版本号（vYYYY.MM.DD-HHMM）必须是正式版本，并按同日内时分排序。
+		{"v2026.10.22-1706", "v2026.10.22-0930", 1},
+		{"v2026.10.22-1706", "v1.6.9", 1},
+		{"v2026.10.23-0900", "v2026.10.22-2359", 1},
 	}
 	for _, test := range tests {
 		got := CompareVersions(test.left, test.right)

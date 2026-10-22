@@ -47,7 +47,7 @@ git remote set-url --push upstream no_push
 | `main` | 上游 `main` 的**纯镜像** | 只允许快进对齐上游；**永不承载本地提交** |
 | `work` | 二开主线（fork 默认分支） | 日常开发、合并、推送都在这里；**只允许快进推送**，强推由 ruleset 拒绝 |
 
-二开工作流：从 `work` 切特性分支 → PR/合并回 `work` → 需要发版时在 `work` 打 `fork-v*` tag。
+二开工作流：从 `work` 切特性分支 → PR/合并回 `work` → 需要发版时在 `work` 打日期版本号 tag（`vYYYY.MM.DD-HHMM`，北京时间）。
 
 `work` 上挂着仓库级 ruleset「work 主线保护」（`non_fast_forward`，只作用于 `refs/heads/work`）：
 任何非快进推送都会被服务端拒绝，包括 `git push --force` 与同步工作流的 `--force-with-lease`。
@@ -136,7 +136,7 @@ git hook run pre-commit            # 自检：在 main 上应报错退出
 - **不要在 `work` 上强推**（现在会被 ruleset 拒绝，见 §2）。上游同步固定走 `merge`：`rebase` 需要改写历史，规则会直接拒绝；若工作区已被 rebase 过，先 `git reset --hard origin/work` 回到远端状态再合并。
 - **`main` 的跟踪关系**：本地 `main` 跟踪 `origin/main`（fork 的镜像分支），`git pull` 拿到的是 fork 的镜像，不是上游；要拉上游必须显式 `git fetch upstream`。
 - **不要在 fork 里复用上游的发布流水线**。`publish-images.yml` 已禁用（同步工作流的 preflight 会强制保持 `disabled_manually`），二开发布需要一份独立名字的工作流，见 §7。
-- **上游 tag 与二开 tag 不要同名**。同步工作流会把上游 `v*` tag 推到这个仓库，二开自己的版本 tag 用 `fork-v*`，见 §7。
+- **上游 tag 与二开 tag 不要同名**。同步工作流会把上游 `v*` tag 推到这个仓库；二开用日期版本号 `vYYYY.MM.DD-HHMM`（北京时间），与上游 `v1.x` 号段不相交，见 §7。
 - **不要照 README 的一键命令部署二开版本**。`scripts/install-server-image.sh` 默认指向 `ghcr.io/ddcat-ai/...` 和上游 Compose，装出来的是上游代码且不会报错；二开部署走 `scripts/fork-deploy-image.sh`，见 §7。
 - **`web/vercel.json` 是上游初始提交里的 Vercel 配置，本仓库不使用也不维护**。部署只走 Docker + nginx（根 `Dockerfile` + `nginx.conf`）；照该文件把前端部署到 Vercel 不会有 `/api` 代理，接口全部 404。
 
@@ -146,23 +146,35 @@ git hook run pre-commit            # 自检：在 main 上应报错退出
 
 | 身份 | 二开取值 | 为什么不能沿用上游 |
 | --- | --- | --- |
-| 版本 tag | `fork-v<上游版本>.<二开序号>`，例如 `fork-v1.6.8.3.1` | 同步工作流会把上游 `v*` tag 推到本仓库，同名会互相覆盖 |
+| 版本 tag | 日期版本号 `vYYYY.MM.DD-HHMM`（北京时间），例如 `v2026.10.22-1706` | 同步工作流会把上游 `v*` tag 推到本仓库，同名会互相覆盖；日期号段与上游 `v1.x` 不相交 |
+| 镜像标签 | 同一个串去掉 `v`（`2026.10.22-1706`） | 安装脚本与更新器都会删 `v` 前缀再拉镜像，与上游 `v1.6.9` → `1.6.9` 一致 |
 | 镜像仓库 | `ghcr.io/zhuiyue132/open-ai-canvas-{backend,web,yingce-agent}` | 上游镜像里没有二开代码 |
 | Compose | `raw.githubusercontent.com/zhuiyue132/open-ai-canvas/<tag>/docker-compose.deploy.yml` | 上游 Compose 指向上游镜像 |
 | Host Updater | `raw.githubusercontent.com/zhuiyue132/open-ai-canvas/<tag>/scripts/install-host-updater.sh` | 更新器按 `<IMAGE_REPOSITORY>` 拉取，仓库不一致会拉回上游 |
+
+为什么日期必须点分成三段：`hostupdate.CompareVersions` 只把「≥3 段点分数字」的 tag 当正式版本号，`v20261022-1706` 这类紧凑写法会被归成非发布标签，更新判断失效。
+
+发版（在 `work` 上打 tag，推送后由 `publish-fork-images.yml` 完成质量检查、双架构镜像、Release 资产）：
+
+```bash
+git switch work && git pull --ff-only
+tag="v$(TZ=Asia/Shanghai date +%Y.%m.%d-%H%M)"
+git tag -a "$tag" -m "$tag"
+git push origin "$tag"
+```
 
 部署入口（把 `IMAGE_REPOSITORY`/`COMPOSE_URL`/`UPDATER_INSTALL_URL` 三个默认值一次改对，并在解析结果仍指向上游时直接失败）：
 
 ```bash
 # 先看解析结果，不安装
-CANVAS_IMAGE_TAG=fork-v1.6.8.3.1 scripts/fork-deploy-image.sh --check-only
+CANVAS_IMAGE_TAG=v2026.10.22-1706 scripts/fork-deploy-image.sh --check-only
 
 # 部署
-CANVAS_IMAGE_TAG=fork-v1.6.8.3.1 \
-  curl -fsSL "https://raw.githubusercontent.com/zhuiyue132/open-ai-canvas/fork-v1.6.8.3.1/scripts/fork-deploy-image.sh" \
+CANVAS_IMAGE_TAG=v2026.10.22-1706 \
+  curl -fsSL "https://raw.githubusercontent.com/zhuiyue132/open-ai-canvas/v2026.10.22-1706/scripts/fork-deploy-image.sh" \
   | sudo bash
 ```
 
-镜像与 Release 资产是这条路径的前置条件：在二开自己的发布工作流产出 `fork-v*` 的镜像与 `SHA256SUMS` 之前，`fork-deploy-image.sh` 会在 `docker compose pull` 阶段失败——这是预期行为，不要用"回退到上游镜像"绕过。
+镜像与 Release 资产是这条路径的前置条件：没有对应 tag 的镜像与 `SHA256SUMS` 时，`fork-deploy-image.sh` 会在 `docker compose pull` 阶段失败——这是预期行为，不要用"回退到上游镜像"绕过。
 
-重访信号：第一次出现影响部署的二开改动（Dockerfile、nginx.conf、compose、后端运行时配置）时，必须先建好二开发布工作流，再发 `fork-v*` tag。当前二开改动只有文档、CI 与工具链，没有部署面改动，所以发布工作流尚未建立，见 [fork release identity](../.agents/notes/implemented/process/2026-10-15-fork-release-identity.md)。
+版本号只由 tag 名字决定（不再读 `VERSION`）：`VERSION` 仍然跟着上游，二开发版不需要改它，也不会因为上游 bump 而连带改变二开版本号。

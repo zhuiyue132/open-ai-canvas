@@ -2,6 +2,8 @@
 
 Status: implemented
 
+> 版本号方案已由 [日期版本号发布](./2026-10-22-date-based-release-tags.md) 取代（`fork-v<上游版本>.<序号>` → `vYYYY.MM.DD-HHMM`）；镜像仓库、Compose、Host Updater 与部署入口的身份约定仍然有效。
+
 ## Problem
 
 二开仓库继承的部署文档默认装的是**上游代码**，而且不会报错：

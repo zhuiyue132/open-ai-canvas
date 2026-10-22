@@ -8,8 +8,11 @@
 # 而且不会有任何报错。这里把默认值换成二开仓库，并在解析结果仍指向上游时直接失败。
 #
 # 用法：
-#   CANVAS_IMAGE_TAG=fork-v1.6.8.3.1 \
-#     curl -fsSL "https://raw.githubusercontent.com/zhuiyue132/open-ai-canvas/fork-v1.6.8.3.1/scripts/fork-deploy-image.sh" | sudo bash
+#   CANVAS_IMAGE_TAG=v2026.10.22-1706 \
+#     curl -fsSL "https://raw.githubusercontent.com/zhuiyue132/open-ai-canvas/v2026.10.22-1706/scripts/fork-deploy-image.sh" | sudo bash
+#
+# 版本号是二开的日期版本号（北京时间 vYYYY.MM.DD-HHMM），不带 fork- 前缀；
+# 官方安装脚本会把 `v` 删掉再去拉镜像，所以这里始终传带 `v` 的 Release tag。
 #
 # 先看解析结果不安装：
 #   scripts/fork-deploy-image.sh --check-only
@@ -41,10 +44,12 @@ step() { printf '\n==> %s\n' "$1"; }
 fail() { printf '\n部署入口失败：%s\n' "$1" >&2; exit 1; }
 
 validate() {
-    [[ -n "$CANVAS_IMAGE_TAG" ]] || fail "必须显式指定二开 Release 标签，例如 CANVAS_IMAGE_TAG=fork-v1.6.8.3.1"
+    [[ -n "$CANVAS_IMAGE_TAG" ]] || fail "必须显式指定二开 Release 标签，例如 CANVAS_IMAGE_TAG=v2026.10.22-1706"
     [[ "$CANVAS_IMAGE_TAG" != "latest" ]] || fail "二开部署必须固定到具体 Release，不能使用 latest"
     [[ "$REPOSITORY_REF" == "$CANVAS_IMAGE_TAG" ]] || fail "REPOSITORY_REF 必须与 CANVAS_IMAGE_TAG 一致，避免 Compose/更新器取自另一个提交"
     [[ "$CANVAS_IMAGE_TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]] || fail "CANVAS_IMAGE_TAG 不是有效的 Docker 镜像标签"
+    # 二开只发日期版本号；上游 v1.x tag 在本仓库没有对应镜像，提前拒绝比等到 pull 失败好排查。
+    [[ "$CANVAS_IMAGE_TAG" =~ ^v[0-9]{4}\.[0-9]{2}\.[0-9]{2}-[0-9]{4}$ ]] || fail "CANVAS_IMAGE_TAG 必须是二开日期版本号（例如 v2026.10.22-1706），不能用上游版本号"
 
     # 上游镜像仓库里的 tag 与二开 tag 互不相认：一旦解析到上游，部署出来的是别人的代码。
     case "$IMAGE_REPOSITORY" in

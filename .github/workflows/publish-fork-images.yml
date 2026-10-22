@@ -3,13 +3,18 @@ name: Publish fork container images
 # 二开自己的镜像与 Release 流水线。上游继承来的 publish-images.yml 必须保持
 # `disabled_manually`（fork-sync-upstream.yml 的 preflight 会强制），所以这份用独立文件名。
 #
-# 二开版本号与上游正交：tag 形如 `fork-v1.6.8.3.1`，其中 `v1.6.8.3` 是 VERSION，末尾 `.1` 是
-# 二开序号；镜像、Compose、Host Updater 都用同一个 tag，对应 scripts/fork-deploy-image.sh。
+# 二开版本号是「日期 + 时分」：tag 形如 `v2026.10.22-1706`（北京时间，与上游的 v1.x 号段天然不相交），
+# 不再打 fork- 前缀。日期必须点分成 >= 3 段数字：host-updater 的 CompareVersions 只把这种 tag
+# 当正式版本号（parseVersion 要求 >= 3 段数字），否则它会在更新判断里被当成“非发布标签”。
+# 镜像标签是同一个串去掉 `v`（`2026.10.22-1706`）：安装脚本（`${CANVAS_IMAGE_TAG#v}`）与更新器
+# （`TrimPrefix(version, "v")`）都会删 `v`，与上游 `v1.6.9` → 镜像 `1.6.9` 的约定一致。
+# 镜像、Compose、Host Updater 都用同一个 tag，对应 scripts/fork-deploy-image.sh。
 # 不读 CHANGELOG（上游近 30 天改了 38 次，二开条目会反复冲突），Release 说明用自动生成。
 on:
   push:
     tags:
-      - "fork-v*"
+      # 只认 vYYYY.MM.DD-HHMM；同步工作流推进来的上游 v1.x tag 不会命中，不能拿来发二开版本。
+      - "v[0-9][0-9][0-9][0-9].[0-9][0-9].[0-9][0-9]-[0-9][0-9][0-9][0-9]"
   workflow_dispatch:
     inputs:
       version_tag:
@@ -30,11 +35,12 @@ jobs:
     uses: ./.github/workflows/quality.yml
 
   prepare:
-    name: Resolve fork version
+    name: Resolve release version
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.info.outputs.version }}
       image_tag: ${{ steps.info.outputs.image_tag }}
+      release_tag: ${{ steps.info.outputs.release_tag }}
       build_time: ${{ steps.info.outputs.build_time }}
       owner: ${{ steps.info.outputs.owner }}
       release: ${{ steps.info.outputs.release }}
@@ -51,27 +57,36 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          version="$(tr -d '\r\n' < VERSION)"
-          if [[ "$GITHUB_REF" == refs/tags/fork-v* ]]; then
-            image_tag="$GITHUB_REF_NAME"
-            # 允许 fork-<VERSION> 与 fork-<VERSION>.<序号>；其余一律拒绝，避免把上游版本号
-            # 或手写的任意标签当作二开发版。
-            candidate="${image_tag#fork-}"
-            rest="${candidate#"$version"}"
-            if [[ "$candidate" != "$version"* ]] || { [[ -n "$rest" ]] && ! [[ "$rest" =~ ^\.[0-9]+$ ]]; }; then
-              echo "::error::tag $image_tag 与 VERSION=$version 不匹配：应为 fork-$version 或 fork-$version.<序号>" >&2
+          version_pattern='^v[0-9]{4}\.[0-9]{2}\.[0-9]{2}-[0-9]{4}$'
+          image_tag_pattern='^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$'
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            release_tag="$GITHUB_REF_NAME"
+            # 触发用的 glob 只保证形状像日期版本号，这里再钉住格式，避免 2026.13.40 或快照 tag 混进来。
+            [[ "$release_tag" =~ $version_pattern ]] || {
+              echo "::error::tag $release_tag 不是日期版本号：应为 vYYYY.MM.DD-HHMM（北京时间）" >&2
               exit 1
-            fi
+            }
+            # 只发 work 上的提交：tag 打在特性分支时要先去合并，否则镜像与 Compose 不对应二开主线。
+            git fetch --no-tags --quiet origin '+refs/heads/work:refs/remotes/origin/work'
+            git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/work || {
+              echo "::error::$release_tag 的提交不在 origin/work 上：二开发布只能从 work 打 tag" >&2
+              exit 1
+            }
             release=true
           else
             [[ -n "${DISPATCH_TAG:-}" ]] || { echo "::error::workflow_dispatch 需要 version_tag" >&2; exit 1; }
-            image_tag="$DISPATCH_TAG"
-            candidate="$version"
+            [[ "$DISPATCH_TAG" =~ $image_tag_pattern && "$DISPATCH_TAG" != "latest" ]] || {
+              echo "::error::预演标签 $DISPATCH_TAG 不是有效的 Docker 镜像标签" >&2
+              exit 1
+            }
+            release_tag="$DISPATCH_TAG"
             release=false
           fi
+          version="${release_tag#v}"
           {
-            echo "version=$candidate"
-            echo "image_tag=$image_tag"
+            echo "version=$version"
+            echo "image_tag=$version"
+            echo "release_tag=$release_tag"
             echo "release=$release"
             echo "build_time=$(git show -s --format=%cI HEAD)"
             echo "owner=${REPOSITORY_OWNER,,}"
@@ -184,8 +199,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       # 不调用 .github/scripts/promote-image.sh：它把版本标签限定为 refs/tags/v* 且要求纯数字
-      # 版本号，二开的 fork-v* 标签不满足；这里直接用 buildx imagetools 把已验证的 digest
-      # 组装成版本标签，digest 不变，等于推广不可变内容。
+      # 版本号，二开的日期版本号不适合这份上游脚本；这里直接用 buildx imagetools 把已验证的
+      # digest 组装成版本标签，digest 不变，等于推广不可变内容。
       - name: Promote verified digests
         env:
           IMAGE: ghcr.io/${{ needs.prepare.outputs.owner }}/${{ matrix.image }}
@@ -234,7 +249,7 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
         shell: bash
         run: |
           assets=(
@@ -243,11 +258,11 @@ jobs:
             dist/SHA256SUMS
             docker-compose.deploy.yml
           )
-          if gh release view "$IMAGE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$IMAGE_TAG" "${assets[@]}" --clobber
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
           else
-            gh release create "$IMAGE_TAG" "${assets[@]}" \
+            gh release create "$RELEASE_TAG" "${assets[@]}" \
               --verify-tag \
-              --title "$IMAGE_TAG" \
+              --title "$RELEASE_TAG" \
               --generate-notes
           fi
