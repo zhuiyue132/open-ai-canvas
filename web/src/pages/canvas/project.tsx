@@ -2933,7 +2933,6 @@ function CanvasViewportPage() {
                                         />
                                     ) : null}
                                 </div>
-
                             </div>
 
                             {angleNode?.metadata?.content ? (
@@ -3242,13 +3241,7 @@ function CanvasViewportPage() {
                             ) : null}
 
                             {enhanceNode ? (
-                                <CanvasVideoEnhanceDialog
-                                    node={enhanceNode}
-                                    open={Boolean(enhanceNode)}
-                                    config={effectiveConfig}
-                                    onClose={() => setEnhanceDialogNodeId(null)}
-                                    onConfirm={(params) => void enhanceVideoNode(enhanceNode, params)}
-                                />
+                                <CanvasVideoEnhanceDialog node={enhanceNode} open={Boolean(enhanceNode)} config={effectiveConfig} onClose={() => setEnhanceDialogNodeId(null)} onConfirm={(params) => void enhanceVideoNode(enhanceNode, params)} />
                             ) : null}
 
                             {timelineNode ? (

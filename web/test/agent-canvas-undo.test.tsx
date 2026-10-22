@@ -14,7 +14,7 @@ function reduceEvent(messages: CloudAgentChatMessage[], event: AgentEvent) {
     const setMessages: Dispatch<SetStateAction<CloudAgentChatMessage[]>> = (action) => {
         next = typeof action === "function" ? action(next) : action;
     };
-    const noop = (() => {}) as Dispatch<SetStateAction<never>>;
+    const noop = () => {};
     applyAgentEvent(event, setMessages, noop, noop);
     return next;
 }

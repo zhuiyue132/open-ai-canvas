@@ -4,7 +4,7 @@ import type { CanvasNodeData } from "../../src/types/canvas";
 
 const dom = new Window({ url: "http://localhost/" });
 const preference = Object.assign(new dom.EventTarget(), { matches: false });
-dom.matchMedia = (() => preference) as typeof dom.matchMedia;
+dom.matchMedia = (() => preference) as unknown as typeof dom.matchMedia;
 const originals = new Map<string, PropertyDescriptor | undefined>();
 for (const [key, value] of Object.entries({
     window: dom,
@@ -132,7 +132,7 @@ test("真实节点 DOM 与 SVG 连线同步；中断、禁用动效和卸载清�
         await act(async () => render());
         expect(animations[0].stopped).toBe(true);
         expect(box().style.width).toBe(`${display.width}px`);
-        await act(async () => box().dispatchEvent(new dom.PointerEvent("pointerdown", { bubbles: true, button: 0 })));
+        await act(async () => box().dispatchEvent(new dom.PointerEvent("pointerdown", { bubbles: true, button: 0 }) as unknown as Event));
         expect(animations[1].stopped).toBe(true);
         expect(box().style.width).toBe(`${node.width}px`);
         expect(path()).toBe(canvasConnectionPath(connection, node, target).pathD);
