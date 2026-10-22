@@ -54,7 +54,7 @@ Status: implemented
   - `--add-host backend:127.0.0.1` 只让 `nginx -t` 通过，不代表运行时 DNS 正确。
   - 每次 push 增加约 `bun run build` 5s、部署校验数十秒、govulncheck 40s + 工具下载、gitleaks 数秒。
   - 棘轮的 `BASE_SHA` 在"新分支首推"时会退化成只检查最后一个提交。
-  - **每次同步上游都要补一轮收尾**：合并 `upstream/main` 后，上游带来的测试文件都会落进整目录门的检查范围，而上游代码不是 prettier-clean（格式门只在 base 版本同样不干净时才跳过）。同步 `48543609` 实测：8 个文件格式不通过（6 个新增 + 2 个上游改动后失格式），17 个新增测试文件里 3 个共 13 处类型错误（`happy-dom` 的 `Event` 缺 `isTrusted/returnValue/srcElement` 因此与 lib.dom 的 `Event` 不兼容、夹具缺 `CanvasProject` 必填字段）。处理方式是 `prettier --write` 这些文件、在派发边界做一次 `Event` 转换、给夹具补齐字段；放宽门或把它们塞进存量豁免会削弱棘轮本身。
+  - **每次同步上游都要补一轮收尾**：合并 `upstream/main` 后，上游带来的测试文件都会落进整目录门的检查范围，而上游代码不是 prettier-clean（格式门只在 base 版本同样不干净时才跳过）。同步 `48543609` 实测：8 个文件格式不通过（6 个新增 + 2 个上游改动后失格式），17 个新增测试文件里 3 个共 13 处类型错误（`happy-dom` 的 `Event` 缺 `isTrusted/returnValue/srcElement` 因此与 lib.dom 的 `Event` 不兼容、夹具缺 `CanvasProject` 必填字段）。处理方式是 `prettier --write` 这些文件、在派发边界做一次 `Event` 转换、给夹具补齐字段；放宽门或把它们塞进存量豁免会削弱棘轮本身。同步 `acdf51dc` 再次实测 3 个文件格式不通过、3 个新增测试文件 4 处类型错误，其中一类是 `bun:test` 的 `toEqual` 第二重载（`NoInfer<X>`，`X` 默认取实际值类型）：当被测函数用 `satisfies` 返回对象字面量时，期望对象必须显式带上那些「可选但推断成 `string | undefined`」的 key，否则报缺属性而不是赋值不兼容。
 
 ## Verification
 
