@@ -33,6 +33,7 @@ Status: implemented
   - **npm 分两层**：`bun audit --audit-level=critical` 拦截，全量 `bun audit` 只报告。一轮 overrides 补齐后公告数从 112 条 / 31 包降到 12 条 / 5 包、critical 归零；2026-10-19 再用平铺 override 补齐 `nanoid 3.3.18`、`fflate 0.8.3`、`katex 0.18.11`，降到 **2 条（1 high / 1 moderate）**：`braces`（来自 sass→chokidar、shadcn→fast-glob→micromatch）与 `sprintf-js`（来自 argparse）在 npm 上都**没有修复版本**（各自 latest 就是 3.0.3 / 1.1.3），且两者的调用链都在构建与 CLI 工具里，`dist/` 产物中搜不到 `micromatch`/`fill-range`/`argparse`/`vsprintf`。所以拦 high 仍需要长期 ignore 名单，收益不抵维护成本。
 - 新增 `.github/scripts/check-env-docs.py` 挂到 backend job：后端读到的每个 `CANVAS_*` 必须出现在 `.env.example`、`README.md`、`AGENTS.md`、`SECURITY.md` 或 `docs/**` 里。
 - dependabot 补齐 `github-actions`（`/`）与 `docker`（`/`、`/backend`、`/yingce-agent`），并把 `backend/agent-runtime/pi` 的 npm 依赖纳入。
+- 上游同步带来的 `Agent architecture and static checks` job 用 golangci-lint 扫 `./internal/agent/...`，**版本必须由 Go >= 模块 `go` 指令（1.26）构建**：golangci-lint 二进制自带 go/types，`v2.5.0` 内置 go1.25，加载 go 1.26 的包直接 panic（`package requires newer Go version go1.26 (application built with go1.25)`，exit 2）。现钉 `v2.15.0`（内置 go1.27），并把 `backend/.golangci.yml` 的 `run.go` 从 `1.25` 改为 `1.26`，否则类型检查仍按旧语言版本跑。
 
 范围边界（有意不做）：`docs/` 内容仍无机械校验，本改动不引入文档站或链接检查；质量门只管 `work`，不管上游镜像的 `main`。
 

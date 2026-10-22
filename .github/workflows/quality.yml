@@ -32,11 +32,11 @@ jobs:
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
-      # v2.5.0 supports Go 1.25. This job scopes linting to Agent domain packages;
-      # the existing backend job continues to own the full integration suite.
+      # 版本必须是用 Go >= 本模块 go 指令（1.26）构建的 golangci-lint：二进制自带 go/types，
+      # 用 go1.25 构建的版本（如 v2.5.0）遇到 go 1.26 的包会直接 panic。
       - uses: golangci/golangci-lint-action@v8
         with:
-          version: v2.5.0
+          version: v2.15.0
           working-directory: backend
           args: --config=.golangci.yml ./internal/agent/...
       - name: Check Agent architecture
