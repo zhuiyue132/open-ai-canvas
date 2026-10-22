@@ -3517,3 +3517,10 @@ SQLite 与 HTTP recorder 已验证；PostgreSQL 16／17、前端构建及浏览�
 - 已验证：`go test ./... -count=1 -timeout=20m`、`go vet ./...`、`go build ./...`、前端 2716 项测试、`bun run lint`、`bun run build` 通过；数据库与API迁移测试包含SQLite。四篇修改后的MDX逐篇编译及OpenAPI引用解析通过。
 - 环境阻塞：文档站 `bun run types:check` 在 MDX 扫描前失败，当前忽略的 `docs/node_modules/fdir/dist/index.mjs` 调用了 `Dirent.isPrevisy()`（Node Dirent 无此方法）；为避免改依赖，本轮未继续修补 node_modules。
 - [ ] 真实模型/收费生成与多次运行pass^k、provider缓存命中率、PostgreSQL 58迁移、浏览器记忆提案与历史撤销尚未人工验收。
+
+## 二开发布的日期版本号与首轮 Release
+
+- 已实现：二开发布版本号改为北京时间日期 + 时分 `vYYYY.MM.DD-HHMM`，镜像标签为同一串去掉 `v`；发布流水线只认该格式，并拒绝不在 `work` 上的提交；`fork-deploy-image.sh` 对非日期 tag 直接失败。
+- 已验证：`v2026.10.22-1718`（`work` 提交 `4f6ab768`）的流水线全绿，Release 资产含 Host Updater 双架构二进制、`SHA256SUMS` 与 `docker-compose.deploy.yml`；GHCR 上 web / backend / yingce-agent 的 `2026.10.22-1718` 与 `sha-<commit>` 指向同一 digest，镜像 label 版本为 `2026.10.22-1718`。
+- [ ] 用 `CANVAS_IMAGE_TAG=v2026.10.22-1718 scripts/fork-deploy-image.sh` 在真实服务器安装，确认镜像能拉到、`.env` 里写入的是去掉 `v` 的标签、更新器能从该 Release 取到 `SHA256SUMS`。
+- [ ] 再发一个日期 tag，确认服务器 Host Updater 把它识别为可用更新（日期版本号按正式版本比较），升级后容器运行的是新镜像且回滚可用。

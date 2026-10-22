@@ -51,4 +51,12 @@ Status: implemented
   - 同一分钟内不能发两次版（tag 冲突）；时间戳是本地时区，tag 一旦打错只能删 tag 重打，已产生的 Release 资产要人工清理。
   - 版本号不再编码"对应哪个上游版本"，需要时只能靠 Release 的自动生成说明（前后 commit 列表）追溯。
   - `publish-fork-images.yml` 的文件名、job 名里的 fork 字样保留（改名的代价是丢历史 run 与文档锚点），只有版本号去掉了前缀。
-- **验证**：`prepare` 脚本逐例执行——`v2026.10.22-1706` 在 `work` 上得到 `version=2026.10.22-1706`、`image_tag=2026.10.22-1706`、`release_tag=v2026.10.22-1706`、`release=true`；`v1.6.9`、`v2026.10.22-170`、`v2026.10.22-1706-snap`、不在 `work` 上的提交、预演标签 `latest` 全部退出 1 并给出对应原因；`dry-run` 预演退出 0 且 `release=false`。`bash -n` 覆盖全部 `run` 片段，`fork-deploy-image.sh --check-only` 对日期 tag 与上游 tag 两种输入分别放行/拒绝。
+- **验证**：见下节。
+
+## Verification
+
+- `prepare` 脚本逐例执行（本机 bash 3.2 下只替换了 `${VAR,,}` 这一处 bash-4 展开，其余逐字运行）：`v2026.10.22-1706` 在 `work` 上得到 `version=2026.10.22-1706`、`image_tag=2026.10.22-1706`、`release_tag=v2026.10.22-1706`、`release=true`；`v1.6.9`、`v2026.10.22-170`、`v2026.10.22-1706-snap`、不在 `work` 上的提交、预演标签 `latest` 全部退出 1 并给出对应原因；`dry-run` 预演退出 0 且 `release=false`（容器里用 `bash:5` 重跑前两条预演用例，确认 `${VAR,,}` 行为正常）。
+- `bash -n` 覆盖 workflow 全部 `run` 片段；`scripts/fork-deploy-image.sh --check-only` 对 `v2026.10.22-1706` 打印七个解析值并退出 0，对上游 `v1.6.9` 退出 1。
+- `hostupdate` 单元测试补充日期版本号用例：`v2026.10.22-1706 > v2026.10.22-0930`、`v2026.10.22-1706 > v1.6.9`、`v2026.10.23-0900 > v2026.10.22-2359` 均通过，`IsReleaseVersion` 对带/不带 `v` 的日期版本号都为真。
+- 首轮真实发布：tag `v2026.10.22-1718` 指向 `work` 的 `4f6ab768`，流水线（run 39754403066）全绿：resolver、6 个质量门 job、四个架构构建、三个 manifest 推广、Release 资产。Release 内含 `open-ai-canvas-host-updater-linux-{amd64,arm64}`、`SHA256SUMS`、`docker-compose.deploy.yml`；`ghcr.io/zhuiyue132/open-ai-canvas-{web,backend,yingce-agent}:2026.10.22-1718` 与 `:sha-4f6ab76…` 指向同一 digest，镜像 label `org.opencontainers.image.version=2026.10.22-1718`。
+- 未验证：真实服务器上的安装与 Host Updater 自升级（安装脚本补 `v`、更新器按 `2026.10.22-1718` 拉镜像、下一个日期 tag 被识别为可用更新），已记入 `docs/content/docs/progress/pending-test.mdx`。
