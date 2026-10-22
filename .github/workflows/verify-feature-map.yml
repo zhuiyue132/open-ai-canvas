@@ -1,0 +1,39 @@
+name: Verify Feature Map
+
+# 功能地图漂移闸门：校验 .agents/skills/feature-map/FEATURE_MAP.md 与 web/src/router.tsx 一致、
+# feature flag 名称有表格登记、图里代码锚点（含验收命令文件参数）真实存在。
+# 约定见 .agents/skills/feature-map/SKILL.md 与 AGENTS.md 第 8、9 节。
+on:
+  pull_request:
+  push:
+    branches:
+      - work
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-feature-map-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+
+      - name: Install locked web dependencies
+        working-directory: web
+        run: bun install --frozen-lockfile
+
+      - name: Test feature map verifier
+        working-directory: web
+        run: bun test test/feature-map-verifier.test.ts
+
+      - name: Verify feature map against router and disk
+        run: bun run .agents/skills/feature-map/scripts/verify-feature-map.ts

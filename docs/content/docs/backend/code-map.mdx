@@ -42,6 +42,8 @@ description: 从产品功能快速定位主要代码入口
 
 这是一张入口地图，不罗列所有文件。先找到功能所属层，再沿调用关系阅读。
 
+要定位「用户在哪看到这个功能、怎么点到、怎么证明它工作」，看 Agent 侧的功能地图 `.agents/skills/feature-map/FEATURE_MAP.md`；本文只回答实现由哪些文件承担。
+
 ## 前端页面
 
 头像裁剪复用 `components/image-crop-dialog.tsx`，原画布裁剪入口保留同一组件合同；`services/profile-avatar.ts` 校验 1:1 区域、导出有界 PNG，`lib/default-user-avatars.ts` 定义系统头像目录，`UserAvatar` 统一渲染系统预设或个人图片。schema v52 增加系统头像选择。

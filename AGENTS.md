@@ -44,7 +44,7 @@ cd web && bun run dev
 
 ### 其他本地开发说明
 
-1. 先读取任务涉及的入口、调用方、配置、锁文件和相邻测试；先理解现状，再决定是否抽象或重构。
+1. 先读取任务涉及的入口、调用方、配置、锁文件和相邻测试；先理解现状，再决定是否抽象或重构。用户报障只有一句话或半张截图时，先查功能地图 `.agents/skills/feature-map/FEATURE_MAP.md` 把功能落到路由和代码锚点，再回到本步。
 2. 使用 `rg` / `rg --files` 搜索，优先并行读取相关文件。不要为了“统一风格”改动无关模块、依赖、格式或用户已有修改。
 3. 先形成目标边界：页面负责什么、service 负责什么、handler/service/repository 如何分层、数据和错误如何流动。新增 helper 必须消除真实重复或隔离明确协议，不能只透传参数。
 4. 检查 `git status --short`。不覆盖、不回滚、不清理非本次产生的变更；不使用 `git reset --hard`、`git checkout --` 或宽范围删除。
@@ -79,6 +79,7 @@ cd web && bun run dev
 ### Agent、插件和文档
 
 - 修改 `docs/` 前确认内容属于参考类专题文档（功能、代码地图、API、数据库、部署、插件接口），而不是把长篇说明重新复制到根 README；决策与取舍写 `.agents/notes/`。参考文档入口见 `docs/index.md`，决策检索用 `rg` 扫 `.agents/notes/`。
+- 功能级索引是 `.agents/skills/feature-map/FEATURE_MAP.md`（面向 Agent 的「功能 → 抵达路径 → 代码锚点 → 验收信号」），与 `docs/content/docs/backend/code-map.mdx` 的分工：前者定位功能与验收，后者定位实现文件。新增或改名路由、改 feature flag、挪动入口时同步更新；`verify-feature-map` 检查路由与开关名称登记、锚点存在性，默认值与入口行为仍须人工核对。
 
 ## 4. 前端 API 和状态合同
 
@@ -159,6 +160,7 @@ cd web && bun run dev
 - 部署面：改动 `docker-compose*.yml` 或 `nginx.conf` 后，本地先跑 `docker compose --env-file <占位 env> -f <file> config --quiet` 与 `docker run --rm --add-host backend:127.0.0.1 -v $PWD/nginx.conf:/etc/nginx/conf.d/default.conf:ro nginx:1.27-alpine nginx -t`。
 - 配置面：新增后端读取的 `CANVAS_*` 环境变量时，同步写进 `.env.example`（默认值、取值区间、影响），`python3 .github/scripts/check-env-docs.py` 会拦截漏登记。
 - 云端 Agent：前端事件流和审批路径依赖后端 `/api/agent` 接口；在该接口实现后补充后端冒烟、Worker 运行和 SSE 断线重连验证。
+- 功能地图：改动任何路由、feature flag 或页面入口后，先安装 `web/` 的锁定依赖，再从仓库根目录运行 `bun run .agents/skills/feature-map/scripts/verify-feature-map.ts`；它校验路由双向登记、开关名称表行及代码锚点（含验收命令中的文件参数）存在性，不验证默认值或运行时交互。修改校验器另跑 `cd web && bun test test/feature-map-verifier.test.ts`。CI 门见 `.github/workflows/verify-feature-map.yml`。
 - 决策笔记：从仓库根目录运行 `bun run .agents/skills/write-notes-like-deepseek/scripts/verify-agent-note-tree.ts`，并连同同目录 `verify-agent-note-format.ts`、`verify-archived-agent-notes.ts` 三线通过（见 §9）。`docs/` 只有 MDX 内容与配图，含文档站构建配置的仓库不在此处，没有可执行的文档站构建命令。
 - UI 变更能浏览器验证时，检查关键路由、明暗主题、滚动、弹窗、空态和核心交互；不能验证时说明替代依据，不把静态阅读或 `git diff` 写成运行验证。
 - 验证必须针对真实实现：优先专项测试、类型检查、项目 build 或真实路由浏览器验收。独立 HTML、静态仿制页面和脱离应用状态的截图不能作为真实页面通过的证据。
@@ -172,7 +174,7 @@ cd web && bun run dev
 - 三线校验从仓库根目录执行：`verify-agent-note-tree.ts`、`verify-agent-note-format.ts`、`verify-archived-agent-notes.ts`，均在 `.agents/skills/write-notes-like-deepseek/scripts/` 下；CI 门见 `.github/workflows/verify-notes.yml`。
 - `.agents/notes/` 下不建集中索引（`INDEX.md` 会让树校验直接报错），检索用 `rg` 与分类树。决定翻转要新开一篇并互链，禁止把已有笔记的 `## Decision` 段改写成反面；路径、符号、默认值这类事实就地更新。
 - `docs/adr/`、`docs/design/`、`docs/plans/`、`docs/superpowers/specs/` 是上游遗产：只读、不作为真相源，改动只来自上游合并。需要其中的事实时按路径引用，不复制正文。仍以规范或在执行计划身份被引用的活文档除外：`docs/plans/ui-design-system.mdx`（组件编写规范与 backlog）与 `docs/plans/ui-kit-rollout-plan.mdx`（自研 UI 组件层实施计划）按参考类文档维护，可随本仓库改动。
-- 功能、代码地图、待测试维护在 `docs/content/docs/overview/features.mdx`、`docs/content/docs/backend/code-map.mdx`、`docs/content/docs/progress/pending-test.mdx`；接口与协议参考文档为 `docs/content/docs/backend/http-api.mdx`、`docs/content/docs/backend/backend-database.mdx`、`backend/internal/protocol/docs/*.md`、`plugin-packages/*/docs/interface.md`、`backend/builtin/*/SKILL.md`。已实现但未由用户确认的变化先写入 `pending-test.mdx`。
+- 功能、代码地图、待测试维护在 `docs/content/docs/overview/features.mdx`、`docs/content/docs/backend/code-map.mdx`、`docs/content/docs/progress/pending-test.mdx`；面向 Agent 的功能级索引在同目录 Skill `.agents/skills/feature-map/FEATURE_MAP.md`，随路由、入口或 feature flag 变动同步；接口与协议参考文档为 `docs/content/docs/backend/http-api.mdx`、`docs/content/docs/backend/backend-database.mdx`、`backend/internal/protocol/docs/*.md`、`plugin-packages/*/docs/interface.md`、`backend/builtin/*/SKILL.md`。已实现但未由用户确认的变化先写入 `pending-test.mdx`。
 - API、数据表、SSE、资源存储、部署或安全边界变化时同步对应参考文档；不要只改代码和根 README。
 - 根 `README.md` 只保留项目定位、能力概览、快速开始、架构概览、部署、安全、参考文档入口和许可证；`README.md` 与 `docs/index.md` 的导航只指向参考类文档，出现失效链接时同批修复。
 - `docs/` 全量随仓库分发：`docs/.gitignore` 覆盖根 `.gitignore` 的 `docs/*` 白名单，新增文档不需要 `git add -f`；`.env*`、`.settings-key`、日志、数据库与缓存目录仍被压住。根 `.gitignore` 保持上游原样，避免与每日同步冲突。

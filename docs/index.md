@@ -23,6 +23,7 @@
 ## 能力与模块
 
 - [功能清单](content/docs/overview/features.mdx)
+- [功能地图（Agent 侧）](../.agents/skills/feature-map/FEATURE_MAP.md)：功能 → 抵达路径 → 代码锚点 → 验收信号，与 `router.tsx` 的漂移由 `verify-feature-map` 拦住。
 - [代码功能地图](content/docs/backend/code-map.mdx)
 - [画布 Agent 外观与 Live2D](content/docs/backend/canvas-agent-appearance.mdx)
 - [Agent 提示词策略](content/docs/backend/agent-prompt-policy.mdx)

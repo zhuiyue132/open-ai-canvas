@@ -87,7 +87,9 @@
     "devDependencies": {
         "@babel/core": "7.29.7",
         "@babel/eslint-parser": "7.28.6",
+        "@babel/parser": "7.29.7",
         "@babel/preset-typescript": "7.28.5",
+        "@babel/types": "7.29.7",
         "@tailwindcss/postcss": "^4.3.3",
         "@types/bun": "1.3.9",
         "@types/file-saver": "^2.0.7",
