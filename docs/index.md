@@ -41,7 +41,7 @@
 以下目录随上游同步保留，本仓库不新增、不作为决策依据；需要其中的事实时按路径引用：
 
 - `docs/adr/`：上游决策记录 10 篇
-- `docs/design/`：上游设计沉淀 20 篇（含 `ui-review-evidence/` 截图与控制台日志）
+- `docs/design/`：上游设计沉淀 21 篇（含 `ui-review-evidence/` 截图与控制台日志）
 - `docs/plans/`：上游实施计划 8 篇
 - `docs/superpowers/specs/`：上游规格 2 篇
 

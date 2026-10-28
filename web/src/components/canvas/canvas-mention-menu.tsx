@@ -23,7 +23,10 @@ export function MentionMenu({
     onQueryChange,
     onClose,
     onSelect,
+    labels,
 }: {
+    /** 非画布场景（如图片区域）复用菜单时替换分组名和搜索提示。 */
+    labels?: { connected?: string; search?: string };
     anchor: HTMLElement;
     connectedReferences: CanvasResourceReference[];
     assetReferences: CanvasResourceReference[];
@@ -91,7 +94,7 @@ export function MentionMenu({
         <div
             ref={menuRef}
             data-canvas-resource-mention-menu="true"
-            className="canvas-resource-mention-menu fixed z-[var(--z-tooltip)]"
+            className="canvas-resource-mention-menu pointer-events-auto fixed z-[var(--z-tooltip)]"
             data-placement={position.showAbove ? "top" : "bottom"}
             style={{ left: position.left, top: position.top, width: position.width, maxHeight: position.maxHeight, transform: position.showAbove ? "translateY(-100%)" : undefined }}
             onPointerDown={stopCanvasInteraction}
@@ -102,7 +105,7 @@ export function MentionMenu({
                 <Search aria-hidden />
                 <input
                     value={query}
-                    placeholder="搜索节点、素材或技能"
+                    placeholder={labels?.search ?? "搜索节点、素材或技能"}
                     aria-label="搜索引用素材"
                     onChange={(event) => onQueryChange(event.target.value)}
                     onPointerDown={(event) => event.stopPropagation()}
@@ -137,7 +140,7 @@ export function MentionMenu({
                         {connectedNodes.length ? (
                             <section className="canvas-resource-mention-section">
                                 <h4>
-                                    <span>画布节点</span>
+                                    <span>{labels?.connected ?? "画布节点"}</span>
                                     <small>{connectedNodes.length}</small>
                                 </h4>
                                 <MentionReferenceList references={connectedNodes} activeReferenceId={activeReferenceId} onSelect={selectReference} />
@@ -172,7 +175,8 @@ export function MentionMenu({
                 )}
             </div>
         </div>,
-        document.body,
+        // Keep the popup inside the dialog's focus and pointer-event boundary.
+        anchor.closest(".ant-modal") || document.body,
     );
 }
 

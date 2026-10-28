@@ -80,24 +80,24 @@
 
 ### 项目列表
 
-- **抵达**：`/projects`；侧栏「短剧制作」；受 `shortDramaEnabled` 控制。
-- **锚点**：`web/src/pages/projects/index.tsx`；API `web/src/services/api/projects.ts`；后端 `backend/internal/handler/project.go`（`RegisterProjectRoutes`）。
+- **抵达**：`/projects`；侧栏「短剧制作」；受 `shortDramaEnabled` 控制。新建项目走 `/projects/new`。
+- **锚点**：`web/src/pages/projects/index.tsx`、新建页 `web/src/pages/projects/create.tsx`；API `web/src/services/api/projects.ts`；后端 `backend/internal/handler/project.go`（`RegisterProjectRoutes`）。
 - **验收**：`cd web && bun test test/project-name-conflict.test.ts`。
 - **陷阱**：新建同名项目走冲突提示而不是自动改名，断言文案时不要写死序号。
 
-### 项目详情与视图
+### 制作台
 
-- **抵达**：`/projects/:projectId`、`/projects/:projectId/:view`。`view` 取 `overview`、`chapters`、`workflow`、`canvases`、`editor`、`assets`、`settings`，非法值回落到 `overview`。
-- **锚点**：`web/src/pages/projects/detail.tsx` 协调视图切换，各视图在 `web/src/pages/projects/detail/`（`web/src/pages/projects/detail/chapters.tsx`、`web/src/pages/projects/detail/workflow.tsx`、`web/src/pages/projects/detail/canvases.tsx`、`web/src/pages/projects/detail/assets.tsx`、`web/src/pages/projects/detail/editor.tsx`、`web/src/pages/projects/detail/settings.tsx`、`web/src/pages/projects/detail/overview.tsx`）；API `web/src/services/api/project-agent-tools.ts`、`web/src/services/api/timeline-tasks.ts`。
-- **验收**：`cd web && bun test test/project-chapter-storyboard.test.ts test/project-chapter-task-recovery.test.ts test/project-asset-linking.test.ts`。
-- **陷阱**：只写 `workflow` 视图而不带 `unitId` 时会重定向到第一个单元的 `video` 阶段，构造深链必须补齐单元与阶段，否则你断言的是重定向后的页面。
+- **抵达**：`/projects/:projectId`、`/projects/:projectId/e/:episodeId`（指定集）；从项目列表点进。同页由查询参数切视图：`?tab=board|script|final`、`?view=production|cast|inbox|settings`、`?shot=<镜头 ID>`、`?cast=<角色 ID>`，非法值分别回落到 `board` 与 `production`。
+- **锚点**：`web/src/pages/projects/detail.tsx`（`DramaStudioPage`）、`web/src/pages/projects/studio/`（集轨道、集原文导入、创建流程、队列条、角色与设置面板、任务详情、studio 数据 hook）、`web/src/pages/projects/drama-shared.tsx`、`web/src/pages/projects/drama-model-picker.tsx`；API `web/src/services/api/drama.ts`；后端 `backend/internal/handler/drama_routes.go`、`backend/internal/app/drama_orchestrator.go`、`backend/internal/app/drama_segment_video.go`、`backend/internal/production/`。
+- **验收**：`cd backend && go test ./internal/app -run Drama`、`cd backend && go test ./internal/production`；`cd web && bun test src/lib/drama/novel-parse.test.ts src/lib/drama/drama-styles.test.ts`。
+- **陷阱**：`/projects/:projectId/*` 是兜底重定向回上一级，旧深链 /projects/:id/workflow/:unitId/:stage 与 /projects/:id/chapters/:chapterId 已随工作流视图下线，被重定向不是页面故障。路由里的集 ID 不属于当前项目时页面回落到默认集（优先等待审阅、其次未完成），深链断言前先确认集列表。
 
-### 分镜工作区
+### 剧本、分镜与成片
 
-- **抵达**：`/projects/:projectId/workflow/:unitId/:stage`；`stage` 缺省为 `video`。也可从 `/projects/:projectId/chapters/:chapterId` 进入章节视图。
-- **锚点**：`web/src/pages/projects/detail/workflow.tsx`、`web/src/pages/projects/detail/workflow-stage-views.tsx`、`web/src/pages/projects/detail/workflow-production-workbench.tsx`；后端 `backend/internal/handler/project_workflow_routes.go`、`backend/internal/app/project_workflow.go`。
-- **验收**：`backend/internal/app/project_workflow_v2_test.go`；前端 `cd web && bun test test/project-chapter-storyboard.test.ts`。
-- **陷阱**：分镜任务复用文本任务 SSE 通道，但结构要等完整响应结束并校验通过才原子应用——中途读节点结构会读到空。
+- **抵达**：制作台内 `?tab=script`（剧本）、`?tab=board`（分镜）、`?tab=final`（成片）；镜头编辑带 `?shot=<镜头 ID>`，剧情段弹窗由 studio 的剧情段弹窗组件打开。
+- **锚点**：`web/src/pages/projects/studio/script-view.tsx`、`web/src/pages/projects/studio/storyboard.tsx`、`web/src/pages/projects/studio/segment-dialog.tsx`、`web/src/pages/projects/studio/segment-parts.tsx`、`web/src/pages/projects/studio/final-view.tsx`；后端 `backend/internal/app/drama_service.go`、`backend/internal/app/drama_storyboard_test.go`、`backend/internal/production/storyboard.go`、`backend/internal/production/segment_prompt.go`。
+- **验收**：`cd backend && go test ./internal/app -run 'Drama|Storyboard'`；`cd web && bun test src/lib/drama/storyboard.test.ts src/lib/drama/asset-prompt.test.ts`。
+- **陷阱**：参考图与段提示词是版本耦合的——改设定文字或镜头会让已写好的提示词与段视频标记过期，只重做参考图则提示词保持有效。断言「提示词过期」前先确认改的是镜头还是仅换参考图。
 
 ## 4. 资源与工具
 
@@ -131,8 +131,8 @@
 
 ### 技能库
 
-- **抵达**：`/skills`，页头「技能库」；侧栏「技能」。
-- **锚点**：`web/src/pages/skills/index.tsx`；API `web/src/services/api/skills.ts`、`web/src/services/skill-runtime.ts`；后端 `backend/internal/handler/skills.go`（`RegisterSkillRoutes`）、`backend/internal/skills/`。
+- **抵达**：`/skills`，页头「技能库」；侧栏「技能」。单个技能的包编辑器与文件树走 `/skills/:skillId/edit`。
+- **锚点**：`web/src/pages/skills/index.tsx`、技能工作台 `web/src/pages/skills/workbench`；API `web/src/services/api/skills.ts`、`web/src/services/skill-runtime.ts`；后端 `backend/internal/handler/skills.go`（`RegisterSkillRoutes`）、`backend/internal/skills/`。
 - **验收**：`cd web && bun test test/skills-api.test.ts test/skill-runtime.test.ts test/skill-defaults.test.ts`；平台分类策展在 `/admin/skill-curation`。
 - **陷阱**：技能分「已安装」和「可安装」，运行时要先选 runtime（`web/src/components/skills/skill-runtime-picker.tsx`）。
 
@@ -166,6 +166,13 @@
 - **验收**：`cd web && bun test test/workspace-route-loading.test.ts test/assets-collection-layout.test.ts` 覆盖钱包入口接线与历史分页布局；真实页面还需检查打开浮层及支付回跳。
 - **陷阱**：`/wallet` 的路由 element 虽为 `null`，但全局 `WorkspaceWalletHost` 会读取支付回跳参数、触发钱包浮层并重定向到 `/`。登录且 `creditsEnabled` 开启时应看到首页上的钱包浮层；关闭时仍重定向，但不打开浮层。空白页不是正常验收结果。
 
+### 推广中心
+
+- **抵达**：`/referral`；用户卡片菜单「推广中心」，仅 `referralAvailable` 为真时渲染。邀请码入口是 `/register?ref=<code>`。
+- **锚点**：`web/src/pages/referral/index.tsx`、`web/src/pages/referral/referral-page.css`、`web/src/components/layout/workspace-account-card.tsx`；API `web/src/services/api/referral.ts`；后端 `backend/internal/handler/referral.go`（`RegisterReferralRoutes`）、`backend/internal/app/referral.go`。
+- **验收**：`cd backend && go test ./internal/app -run Referral`。
+- **陷阱**：入口和页面都由 /auth/session 的 `referralAvailable` 决定——关闭推广或非推广人直达 `/referral` 会被带回首页，接口同样返回 403。看不到菜单时先查系统设置 `referral` 与 `users.is_promoter`，不是路由缺失。
+
 ## 6. 后台管理
 
 ### 入口与权限
@@ -182,6 +189,8 @@
 | 数据看板 | `/admin` | `web/src/pages/admin/admin-route-pages.tsx`（`AnalyticsPage`） |
 | 用户 | `/admin/users` | `web/src/pages/admin/users/users-page.tsx` |
 | 用户登录日志 | `/admin/login-logs` | `web/src/pages/admin/login-logs/login-logs-page.tsx` |
+| 用户反馈 | `/admin/feedbacks` | `web/src/pages/admin/feedbacks/feedbacks-page.tsx` |
+| 推广管理 | `/admin/referral` | `web/src/pages/admin/referral/referral-admin-page.tsx` |
 | 渠道 | `/admin/channels` | `web/src/pages/admin/channels/channels-page.tsx` |
 | 前台模型 | `/admin/models` | `web/src/pages/admin/logical-models/logical-models-page.tsx`（`frontendModelsEnabled`） |
 | 插件 | `/admin/plugins` | `web/src/pages/admin/plugins/plugins-page.tsx` |

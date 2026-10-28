@@ -8,7 +8,7 @@ const GB = 1024 ** 3;
 
 describe("account storage meter", () => {
     test("exposes remaining capacity and total capacity", () => {
-        const meter = accountStorageMeter({ usedBytes: 2 * GB, totalBytes: 10 * GB });
+        const meter = accountStorageMeter({ usedBytes: 2 * GB, totalBytes: 10 * GB, baseBytes: 10 * GB, purchasedBytes: 0, overLimit: false, readOnly: false });
 
         expect(meter.usedLabel).toBe("2.0 GB");
         expect(meter.remainingLabel).toBe("8.0 GB");
@@ -19,7 +19,7 @@ describe("account storage meter", () => {
     });
 
     test("warns when usage reaches seventy percent", () => {
-        const meter = accountStorageMeter({ usedBytes: 7 * GB, totalBytes: 10 * GB });
+        const meter = accountStorageMeter({ usedBytes: 7 * GB, totalBytes: 10 * GB, baseBytes: 10 * GB, purchasedBytes: 0, overLimit: false, readOnly: false });
 
         expect(meter.percent).toBe(70);
         expect(meter.tone).toBe("warn");
@@ -27,7 +27,7 @@ describe("account storage meter", () => {
     });
 
     test("marks full accounts as critical with zero remaining", () => {
-        const meter = accountStorageMeter({ usedBytes: 10 * GB, totalBytes: 10 * GB });
+        const meter = accountStorageMeter({ usedBytes: 10 * GB, totalBytes: 10 * GB, baseBytes: 10 * GB, purchasedBytes: 0, overLimit: false, readOnly: false });
 
         expect(meter.full).toBe(true);
         expect(meter.tone).toBe("critical");

@@ -86,7 +86,7 @@ function harness(state: CreativeAgentState, status: CreationRun["status"] = "pau
         onOpenCanvas: () => undefined,
         api,
         waitTask,
-        ensureAsset: async () => ({ assetId: "asset", created: false, linkedToProject: false }),
+        ensureAsset: async () => ({ assetId: "asset", created: false, linkedToProject: false, syncPending: false }),
     });
     return { controller, api, view: () => view!, counters: () => ({ commits, prepares, executions }), snapshot: () => snapshot };
 }
