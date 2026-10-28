@@ -89,7 +89,38 @@ git push --force-with-lease origin main:main
 - 必须配置仓库 secret `SYNC_TOKEN`：fine-grained PAT，仓库只选本 fork，权限 **Contents: Read and write** + **Workflows: Read and write**（可选 **Actions: Read and write**，让预检能自动关掉被重新启用的发布流水线）。原因：上游经常改 `.github/workflows/*`，默认 `GITHUB_TOKEN` 推送含 workflow 改动的提交会被 GitHub 拒绝（`refusing to allow a GitHub App to create or update workflow ... without workflows permission`）。
 - 注意：GitHub 会在仓库 60 天无活动后自动停用定时工作流，届时在 Actions 页面点 Enable。
 
+### 冲突结算规则（`work` ← `upstream/main`）
+
+冲突不是「随便挑一边」。本仓库对上游是二开分支，分工是「**上游拥有实现，`work` 拥有策略**」；同一个文件同时包含两者时，按文件里的区块分别处理。按类别结算，不逐次从零推理：
+
+| 文件类别 | 典型文件 | 结算 |
+| --- | --- | --- |
+| 上游产品实现 | `web/src/**`、`backend/**`、`plugin-packages/**`、`docker-compose*.yml`、`nginx.conf`、`backend/internal/handler/openapi.yaml` | 取上游；`work` 在同区域的改动逐段重放（三方合并）。重放后仍冲突的区块按各自策略行处理 |
+| 根 README 的展示内容 | 赞助商、3D 预演台赞助用户、贡献者名单、共享演示账号密码 | 取 `work` 侧策略：这些区块删除，演示站只留链接；上游新增的产品介绍、能力清单与 `assets/screenshots/` 保留。依据见 [`sponsors-contributors-removal`](../.agents/notes/implemented/simplification/2026-10-15-sponsors-contributors-removal.md) |
+| 文档索引与参考文档 | `docs/index.md`、`docs/content/docs/**`、`README.md` 的「文档导航」 | 索引取 `work` 侧（只列参考类文档，上游遗产按目录描述、不逐篇链接）；参考文档正文取上游 |
+| 上游遗产（只读） | `docs/adr/`、`docs/design/`、`docs/plans/`、`docs/superpowers/specs/` | 取上游（含新增篇目）；本仓库不改写、不为它补索引链接 |
+| 二开约定与工作流 | `AGENTS.md`、`.agents/**`、`docs/AGENT_LOCAL_DEVELOPMENT.md`、`README.md` 的部署与验证段、`.github/workflows/`（`quality`、`fork-sync-upstream`、`publish-fork-images`、`verify-*`）、`scripts/fork-deploy-image.sh` | 取 `work` 侧；上游在 `.github/workflows/` 的新增与修改按需吸收，但不得启用上游 `publish-images.yml`（同步 preflight 会复查） |
+| 版本身份 | `VERSION`、`CHANGELOG.md`、上游 `v*` tag | 取上游（发布身份跟随上游版本号）；二开 tag 用日期版本号，见第 7 节 |
+| 测试与夹具 | `web/test/**`、`backend/**/*_test.go`、`web/src/**/*.test.ts` | 实现对齐后取上游版本；`work` 侧的类型修复不抢上游内容，冲突解决后重跑门禁再补 |
+| 上游已删除的模块 | 旧 `web/src/pages/projects/detail/`、随其删除的测试与文档锚点 | 接受上游删除，不为旧路径写兼容层，也不把旧测试移植到新模块；新模块的行为面由上游用例加同步时补的专项覆盖 |
+| 上游缺陷的二开修复 | `.agents/notes/implemented/bug-fix/` 里记录的上游 bug 修复 | 保留 `work` 修复；若上游已自行修好同一处，取上游实现并在笔记里标注被上游覆盖 |
+
+判定顺序：
+
+1. 冲突文件属于上表某一类 → 直接按表结算，不再论证。
+2. 表里没有 → 先 `rg -n "上游|同步" .agents/notes` 与 `AGENTS.md`，看有没有既有决定覆盖。
+3. 都没有 → 默认「上游实现 + `work` 策略」：代码取上游，任何会削弱二开策略的内容（README 内容边界、部署身份、`work` 保护、文档真相源、功能地图）取 `work`；并在同一次同步里把这条规则补进本表、写进同步笔记。
+
+冲突解决之后的收尾（少一项就会在 CI 或下一次同步爆出来）：
+
+- `cd web && bun run typecheck:test` 修到 0：上游不跑这个整目录门禁，每次同步都会带进测试类型错误。
+- `bun run .agents/skills/feature-map/scripts/verify-feature-map.ts`：新增路由、feature flag、被删文件的锚点全部对齐。
+- `python3 .github/scripts/check-env-docs.py`、决策笔记三线校验、`cd backend && go test ./...`、`cd web && bun run build && bun test`。
+- 冲突里的每个非机械取舍写进 `.agents/notes/implemented/process/` 的同步笔记（例：[v1.7.2 同步](../.agents/notes/implemented/process/2026-10-28-upstream-sync-v1-7-2.md)），供下一次同步直接引用。
+
 ## 4. 手工同步（不想等定时任务）
+
+手工路径同样按上面「冲突结算规则」处理冲突。
 
 ```bash
 git fetch upstream --prune

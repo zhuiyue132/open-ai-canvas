@@ -174,6 +174,10 @@ jobs:
             echo "git switch work"
             echo "git merge upstream/main   # 解完冲突后 git push origin work"
             echo '```'
+            echo
+            echo "结算规则见 \`docs/AGENT_LOCAL_DEVELOPMENT.md\` 第 3 节「冲突结算规则」：上游实现取上游，二开策略（README 内容边界、部署身份、文档真相源、功能地图、work 保护）取 work；表里没有的新类别按「上游实现 + work 策略」保守处理，并在同一次同步里补进规则表。"
+            echo
+            echo "推送前补跑：\`cd web && bun run typecheck:test\`、\`bun run .agents/skills/feature-map/scripts/verify-feature-map.ts\`、\`python3 .github/scripts/check-env-docs.py\`，并把非机械取舍写进 \`.agents/notes/implemented/process/\` 的同步笔记。"
           } > /tmp/issue-body.md
           number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json number,title \
             --jq "map(select(.title == \"$title\"))[0].number // empty")

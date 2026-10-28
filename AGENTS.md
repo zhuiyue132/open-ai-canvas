@@ -144,6 +144,7 @@ cd web && bun run dev
 - 二开部署不要用 README 的一键命令：`scripts/install-server-image.sh` 的默认镜像仓库与 Compose 都指向上游，装出来的是上游代码且不会报错。改走 `scripts/fork-deploy-image.sh`，身份约定见 `docs/AGENT_LOCAL_DEVELOPMENT.md` 第 7 节。公网只暴露 web 的 `CANVAS_HTTP_PORT`（默认 `3000`），backend `8080` 留在 Compose 网络内。
 - 诊断已有部署时，依据实际 Compose 文件、容器镜像、数据库驱动、数据挂载和 Host Updater 状态分别报告。源码构建不等于 local，SQLite 不证明使用了 `docker-compose.local.yml`，自定义文件名也不证明采用了任何仓库编排。已有 SQLite/自定义部署须先备份、迁移和验证，再转为受管部署；不要直接覆盖原 Compose 或数据卷。
 - `work` 受仓库 ruleset「work 主线保护」约束：只允许快进推送，`git push --force` 会被服务端拒绝；需要重写历史时先按 `docs/AGENT_LOCAL_DEVELOPMENT.md` 第 2 节临时停用规则。
+- 上游同步冲突按 `docs/AGENT_LOCAL_DEVELOPMENT.md` 第 3 节「冲突结算规则」结算：上游实现取上游，二开策略（README 内容边界、部署身份、文档真相源、功能地图、work 保护）取 work，不逐次重新论证；表里没有的新类别按「上游实现 + work 策略」保守处理，并在同一次同步里把规则补进该表。解完冲突必须补跑 `cd web && bun run typecheck:test`、`bun run .agents/skills/feature-map/scripts/verify-feature-map.ts` 与 `python3 .github/scripts/check-env-docs.py`，非机械取舍写进 `.agents/notes/implemented/process/` 的同步笔记。
 - 默认不启动 dev server；只有用户明确要求浏览器预览或联调时才启动，并先确认端口、数据目录和现有进程。
 - 健康检查只能证明入口可用，不能替代登录、SSE、任务生成和资源访问验证。
 

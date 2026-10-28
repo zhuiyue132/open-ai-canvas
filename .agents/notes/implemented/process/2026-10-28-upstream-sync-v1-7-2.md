@@ -17,6 +17,7 @@ Status: implemented
 5. **三个旧工作流测试接受上游删除**（`web/test/project-chapter-storyboard.test.ts`、`web/test/workflow-shot-generation.test.ts`、`web/test/workflow-shot-references.test.ts`）：它们 import 的 `web/src/pages/projects/detail/` 整个目录随短剧流水线重构下线，work 侧对它们的改动只是类型修复，没有需要保留的断言。
 6. **测试类型门禁按漂移修复**，8 个文件 14 处，不新增 `any`、不跳过断言：`syncPending` 新字段、`ApprovalCard` 去掉不存在的 `blocked`、happy-dom 事件按既有约定 `as unknown as Event`、`modelCosts` 去掉不存在的 `channelModelId`、`AccountFileStorageUsage` 补齐 `baseBytes`/`purchasedBytes`/`overLimit`/`readOnly`、`MODEL_LOGO_FEATURED` 条目按 `ModelLogoCategory` 收窄。
 7. **`FEATURE_MAP.md` 按新实现重写 §3**：登记 `/projects/new`、`/projects/:projectId`、`/projects/:projectId/e/:episodeId` 与制作台/剧本分镜锚点；补登记 `/skills/:skillId/edit`、`/referral`、`/admin/feedbacks`、`/admin/referral`；删掉 `/projects/:projectId/:view`、`/projects/:projectId/workflow/:unitId/:stage`、`/projects/:projectId/chapters/:chapterId` 与已删文件的锚点。
+8. **下面这张表已被提炼为固定规则**：`docs/AGENT_LOCAL_DEVELOPMENT.md` 第 3 节「冲突结算规则」+ `AGENTS.md` 第 7 节约束，后续同步直接查表，理由见 [上游同步冲突按文件类别结算](./2026-10-28-upstream-conflict-resolution-policy.md)。
 
 ## Alternatives considered
 
