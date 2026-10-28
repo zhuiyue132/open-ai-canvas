@@ -1131,7 +1131,7 @@ description: 当前项目已实现功能的手工验证清单与未确认边界
 ## 画布 Agent 配置与 Live2D
 
 - [ ] 使用约 50 MiB 的真实模型 ZIP 验收上传和预览；ZIP 上限 128 MiB，解压累计 384 MiB、单文件 128 MiB，超限须拒绝。
-- [ ] 站点仍叫“影策”，助手改为“小鱼”；保存、刷新、撤销和恢复默认后入口、面板、欢迎及输入文案正确，历史对话不改写。
+- [ ] 站点仍叫“意绘”，助手改为“小鱼”；保存、刷新、撤销和恢复默认后入口、面板、欢迎及输入文案正确，历史对话不改写。
 - [ ] 使用授权 Core 和真实 Cubism 3/4 模型完成预览、保存、画布播放验收。没有 Core、模型不兼容、网络超时或 WebGL 丢失时显示错误/默认球，不阻止打开对话。
 - [ ] 导入不自动启用；上传期间不可保存/刷新/恢复默认；离开未保存配置不影响线上形象；其他管理员不能预览或启用未发布草稿。
 - [ ] 未启用包不能匿名访问；启用后模型资源正常读取，切回默认球停止公开服务；引用中包无法删除，清除引用并保存后可清理。
@@ -1210,7 +1210,7 @@ description: 当前项目已实现功能的手工验证清单与未确认边界
 ## 注册服务协议
 
 - [ ] 维护者手动填写 `web/src/pages/auth/register.tsx` 中的 `SERVICE_AGREEMENT` 正文并审核后再发布；当前仅显示“服务协议内容待补充。”，不包含正式条款。
-- [ ] 真实浏览器确认《影策服务协议》弹窗、默认未勾选、取消勾选、普通注册限流和窄屏显示。
+- [ ] 真实浏览器确认《意绘服务协议》弹窗、默认未勾选、取消勾选、普通注册限流和窄屏显示。
 - [ ] 在真实 Linux.do 环境验证新用户未同意被拒绝、同意后注册，以及注册关闭时已有用户仍可登录。
 - [ ] 升级前备份，在 PostgreSQL 上验证版本 32→33；前后端一起发布。当前同意标志不提供长期版本化签署留痕。
 ## 多模态列表与分镜表合并回归
@@ -2663,7 +2663,7 @@ PR #507 核心能力已按主分支实现保留，并补齐小视口尺寸约束
 - [ ] 保存 SEO 标题/描述/关键词、版权与ICP备案开关，确认 metadata 和公共页脚刷新后同步；备案链接只指向 `https://beian.miit.gov.cn/`。
 - [ ] 分别只上传浅色 Logo、只上传深色 Logo、同时上传两套 Logo，并切换浅色/深色主题，确认单图自动复用、双图按主题选择；开启“禁用 Logo 后面的圆角矩形外框”后确认工作台和管理后台导航只显示等比放大到原外框可用区域的 Logo，布局不跳动。
 - [ ] 在“对象存储”中点击“使用品牌标识”，确认只更新当前路径前缀草稿；未点击或未保存时保留服务端已有前缀，历史资源读取不受影响。
-- [ ] 保存一套自定义品牌后点击“恢复影策默认”，确认品牌名称、英文标识、Logo、登录页文案和媒体立即恢复内置值，自定义素材文件仍保留在存储资源中。
+- [ ] 保存一套自定义品牌后点击“恢复意绘默认”，确认品牌名称、英文标识、Logo、登录页文案和媒体立即恢复内置值，自定义素材文件仍保留在存储资源中。
 - [ ] 清空浏览器缓存并以慢速网络打开 `/login`、`/register` 和 `/forgot-password`，确认加载阶段不出现内置品牌名、Logo、favicon 或视频封面闪烁。
 - [ ] 更换品牌视频但不上传封面，确认首帧出现前只显示中性深色背景；再配置封面，确认只显示当前自定义封面。
 - [ ] 在存储资源页尝试删除当前浅色 Logo、深色 Logo、视频和封面，确认显示“外观”引用并保留文件；解除绑定后可正常删除。
@@ -2988,7 +2988,7 @@ PR #507 核心能力已按主分支实现保留，并补齐小视口尺寸约束
 - [x] 轮询使用同一 Base URL 主机的根路径 `/agnesapi`，专项测试确认 `https://apihub.agnes-ai.com/v1` 不会被拼成错误的 `/v1/agnesapi`。
 - [x] Flash 的 720P、最多 5 张图片、禁止参考视频规则已在请求前强校验；协议与 provider service 专项测试通过。
 - [ ] 使用真实 Agnes API Key 分别完成 V2.0 文生视频、单图生视频、2.5 关键帧、2.5 reference、2.5 Flash 的创建与轮询冒烟。
-- [ ] 验证真实失败任务能显示官方 `error.message`，429/5xx 保持现有上游错误语义，生成成功后视频能进入影策资源保存流程。
+- [ ] 验证真实失败任务能显示官方 `error.message`，429/5xx 保持现有上游错误语义，生成成功后视频能进入意绘资源保存流程。
 
 用户确认上述场景后，再将对应条目移动到功能文档的已验证范围。
 
@@ -3132,7 +3132,7 @@ PR #507 核心能力已按主分支实现保留，并补齐小视口尺寸约束
 - [ ] 验证 Path Style 开启时强制路径寻址，关闭时 AWS 使用虚拟主机寻址、其他自定义 Endpoint 自动使用路径寻址。
 - [ ] 验证平台切换到本机后只影响新上传，历史 S3 资源仍可读取和删除；个人 S3 停用后正确回退平台存储。
 - [ ] 验证同一 S3 修改 Bucket、Endpoint、Region、前缀或 Path Style 时，留空 Secret 和 Session Token 可继续复用，并要求重新连接测试。
-- [ ] 使用私网 RustFS 验证浏览器同源代理，以及提交给模型上游时转换为影策公网 HTTPS 短时地址；未配置公网 HTTPS 地址时应明确拒绝。
+- [ ] 使用私网 RustFS 验证浏览器同源代理，以及提交给模型上游时转换为意绘公网 HTTPS 短时地址；未配置公网 HTTPS 地址时应明确拒绝。
 - [ ] 验证管理员关闭个人 S3 后不再接受个人新上传，但已有个人 S3 资源仍可读取和删除。
 
 ## 3D 导演台时间轴关键帧删除与快捷键
@@ -3567,12 +3567,12 @@ v2（用户反馈首版难看后重做）：菜单改用 antd Dropdown（placeme
 - [ ] 代码块圆角/边框/底色在明暗主题均可辨；长代码横向滚动不破版；流式输出中代码块容器稳定不跳动、复制按钮可用。
 - [ ] 消息中的行内代码（如 `const x`）样式不受影响；画布 Agent 消息里的代码块同样获得新外壳。
 
-## 影策品牌首页
+## 意绘品牌首页
 
 - 新增 `/welcome` 独立公开首页、六幕电影卷轴、工作台截图切换和创作入口，保留既有工作台路由。
-- 用户已确认品牌名影策，保留 Spring（默认）、Charge、Wing It! 三个素材版本；没有竹影选项或专用素材。
+- 用户已确认品牌名意绘，保留 Spring（默认）、Charge、Wing It! 三个素材版本；没有竹影选项或专用素材。
 - 首屏影像背景随滚动渐隐为黑底，返回顶部时恢复；故事章节保留九张电影画面和三张叠字镜头。
-- 来源、作者署名、CC BY 4.0 许可和改编说明见 `/welcome/credits.html`，不将第三方电影素材宣称为影策生成案例。
+- 来源、作者署名、CC BY 4.0 许可和改编说明见 `/welcome/credits.html`，不将第三方电影素材宣称为意绘生成案例。
 - 决策与实现说明：[品牌首页决策笔记](../../../../.agents/notes/implemented/feature/2026-10-15-welcome-brand-homepage.md)；分幕文案、素材编排与视觉约束见 `docs/design/story-creation-homepage.md`（上游遗产，只读）。
 - [x] 上游基线独立分支的完整前端构建（指定 Go 1.25.0 工具链）、素材与启动清理专项测试通过；生产预览通过 1440px、390px 三版本切换、六幕滚动、非空画布与动画、Charge 视频、历史返回、减少动态效果与署名页检查，无页面异常、资源 HTTP 错误或后端 API 请求。
 - [ ] iOS Safari 真机地址栏变化、长时间浏览帧率与设备发热。
@@ -3881,3 +3881,14 @@ SQLite 与 HTTP recorder 已验证；PostgreSQL 16／17、前端构建及浏览�
 - 已验证：`v2026.10.22-1718`（`work` 提交 `4f6ab768`）的流水线全绿，Release 资产含 Host Updater 双架构二进制、`SHA256SUMS` 与 `docker-compose.deploy.yml`；GHCR 上 web / backend / yingce-agent 的 `2026.10.22-1718` 与 `sha-<commit>` 指向同一 digest，镜像 label 版本为 `2026.10.22-1718`。
 - [ ] 用 `CANVAS_IMAGE_TAG=v2026.10.22-1718 scripts/fork-deploy-image.sh` 在真实服务器安装，确认镜像能拉到、`.env` 里写入的是去掉 `v` 的标签、更新器能从该 Release 取到 `SHA256SUMS`。
 - [ ] 再发一个日期 tag，确认服务器 Host Updater 把它识别为可用更新（日期版本号按正式版本比较），升级后容器运行的是新镜像且回滚可用。
+
+## 品牌名统一为「意绘」/ EASYDRAW
+
+- 已实现：全仓库中文品牌名统一为「意绘」，595 处字面量覆盖 391 个文本文件；后端默认值集中在 `auth.DefaultBrandName`、`app.defaultAppearanceBrandName`、画布助手 `AgentName` 与内置技能 `Author` 兜底，前端集中在 `use-appearance-store.ts` 的 `brandName`／`seoTitle`／`seoDescription`／`footerCopyright`、`agent-appearance.ts` 与 `sidebar-checkin.ts` 兜底。95 个插件包的 `manifest.json` 与 `docs/interface.md` 按字符串替换处理，96 个已提交 `.yingce-plugin` 产物在 zip 内原位重写（条目名、顺序、压缩方式未变，条目内容仅品牌文案等长替换），未重跑生成器（`generate-catalog.mjs` 与现存文件不幂等，重跑会退回插件版本号并抹掉手工 `imageParameters`）。`docs/adr`、`docs/design`、`docs/plans` 三处上游只读遗产按用户授权一并替换。
+- 已实现：内置技能目录 `backend/builtin/意绘短剧制作工作流/` 同步改名（原目录名带旧品牌名）；稳定身份是 `SKILL.md` 的 `skillId: yingce-short-drama-workflow`，代码与测试不引用该路径，已安装技能的数据库归属不受影响。复合词误替换 1 处已纠正：`backend/builtin/小红书素人穿搭配方/SKILL.md` 原「摄影策略」被替换成「摄意绘略」，现已回写。
+- 已实现：英文品牌名改为 `EASYDRAW`：登录页首屏小标识改为 `EASYDRAW STUDIO`（`brandStudioLabel` 内置分支，保留原 STUDIO 后缀），出站默认 User-Agent 改为 `EasyDraw/1.0`（`channel-headers-editor.tsx`，保留仓库 URL）。三个官方插件包（`antigravity-proxy`、`src-antigravity-proxy`、`lxmone-video-suite`）原本用英文旧品牌作 `author`，已统一成与其余 95 包相同的中文形态「意绘」/「意绘 / 万有引力」，其中 2 个产物同步重写。第三方厂商自己的品牌名（如「沧元算力 / 影绘」）按用户指示不改。
+- 已实现：`yingce` 拼音标识符层未改动——Go module 路径、`yingce.plugin/v2`、`yingce.payment/v1`、`.yingce-plugin` 扩展名、`YINGCE_AGENT_*` 环境变量、`yingce-agent` 容器与镜像名、技能 owner `yingce-system`、localStorage 键 `yingce:theme_store`、对外域名保持原样。`brandSlug` 也仍为 `open-ai-canvas`：它与 `DEFAULT_OSS_PATH_PREFIX`、后端 `defaultOSSPathPrefix` 和 Host Updater 用的上游仓库名同源，属存储与发布命名空间。决策与断裂面记录见 `.agents/notes/implemented/feature/2026-10-28-brand-name-yihui.md`。
+- 已验证：`go test ./...`、`bun run typecheck`、`bun run typecheck:test`、`bun run test:gate`、`bun run build` 通过；`bun test` 全量 2868 pass / 0 fail；残留双口径：旧品牌名作为独立词与路径命中均为 0（字面搜索仍会命中“摄影策略”这类正常词，属已恢复的原内容），三个英文作者名包已改为中文形态，107 个产物逐条目扫描命中 0，以 `HEAD` 为基准逐条目比对确认条目名/顺序/压缩方式未变且仅品牌文案变化。注意 Go 测试缓存不感知产物变化：改过 `.yingce-plugin` 后需 `go test -count=1 ./internal/protocol` 才能验到真实字节。未启动浏览器。
+- [ ] 浏览器验收（亮色 + 暗色）：登录页首屏、顶栏品牌名、欢迎页 `/welcome` 与 `/welcome/credits.html`、画布预演台窗口标题与台面 logo、管理后台「站点及外观」中品牌／SEO／页脚回显，均显示「意绘」；登录页首屏上方的小字标识为 `EASYDRAW STUDIO`，且在「站点及外观」里改成自定义品牌后切换为 `brandSlug` 派生的大写形式。
+- [ ] 存量实例：曾显式保存过外观设置或邮件发件人的部署仍保留旧名（`auth/email.go` 以旧默认值作「继承默认」哨兵，本次按仓库约定不写自动迁移）。需在管理后台点「恢复默认品牌标识」后确认顶栏、SEO、页脚、密码重置邮件主题与发件人全部切换。
+- [ ] 插件中心与技能库：已安装插件详情、技能库列表的作者与说明显示「意绘」；`official_catalog_test.go` 覆盖产物内部一致性，但真实插件安装、升级与停用未做运行验证。
