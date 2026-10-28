@@ -12,7 +12,7 @@ Status: implemented
 
 场景由 `web/src/pages/welcome/story-reel.tsx` 用仓库既有的 Three.js 实现：影像卷轴、阶段材质、轨迹与节点展开；文案与素材清单在 `web/src/pages/welcome/story.ts`；视觉 token 与响应式只在 `web/src/pages/welcome/welcome.css` 生效，不污染全局样式。不引入 OGL 或 GSAP，也不复制参考实现的图片、字体、全局 CSS 与广告脚本。
 
-素材分 Spring（默认）、Charge、Wing It! 三版本，用 `?look=` 直接打开；切换保留滚动位置并支持浏览器前进、后退。素材位于 `web/public/welcome/`，CC BY 4.0 的作者、来源、裁剪说明在 `/welcome/credits.html`，该第三方许可不被应用代码的 MIT 覆盖；页内不把第三方镜头宣称为影策生成案例。
+素材分 Spring（默认）、Charge、Wing It! 三版本，用 `?look=` 直接打开；切换保留滚动位置并支持浏览器前进、后退。素材位于 `web/public/welcome/`，CC BY 4.0 的作者、来源、裁剪说明在 `/welcome/credits.html`，该第三方许可不被应用代码的 MIT 覆盖；页内不把第三方镜头宣称为意绘生成案例。
 
 降级路径固定：减少动态效果偏好、图片加载失败或 WebGL 创建失败时退到静态画面；手机端缩短滚动距离并调整摄影机行程；首屏影像背景随滚动渐隐为黑底，返回顶部恢复。
 
