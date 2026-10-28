@@ -50,7 +50,7 @@ git remote set-url --push upstream no_push
 二开工作流：从 `work` 切特性分支 → PR/合并回 `work` → 需要发版时在 `work` 打日期版本号 tag（`vYYYY.MM.DD-HHMM`，北京时间）。
 
 `work` 上挂着仓库级 ruleset「work 主线保护」（`non_fast_forward`，只作用于 `refs/heads/work`）：
-任何非快进推送都会被服务端拒绝，包括 `git push --force` 与同步工作流的 `--force-with-lease`。
+任何非快进推送都会被服务端拒绝，包括 `git push --force` 与 `--force-with-lease`。
 重写历史属于人工介入场景，需要临时停用规则：
 
 ```bash
@@ -59,14 +59,14 @@ gh api -X PUT "repos/zhuiyue132/open-ai-canvas/rulesets/$ruleset" -f enforcement
 ```
 注意：`git push --dry-run --force` 不校验 ruleset（本地就短路了），判断规则是否生效要用真实推送。
 
-不变式（同步工作流和本地钩子都会校验）：
+不变式（手工同步时自己校验，本地钩子会拦住明显误提交）：
 
 ```bash
 git fetch upstream --prune
 git merge-base --is-ancestor refs/remotes/origin/main refs/remotes/upstream/main && echo "main 仍是纯镜像"
 ```
 
-如果 `main` 上真的落了本地提交，处理方式是**把提交挪到 `work`**，再把 `main` 重新对齐上游（不要直接把二开提交留在 main 上等同步工作流去解）：
+如果 `main` 上真的落了本地提交，处理方式是**把提交挪到 `work`**，再把 `main` 重新对齐上游（不要直接把二开提交留在 main 上等同步时去解）：
 
 ```bash
 git switch -c rescue main            # 先把 main 上的提交存下来
@@ -75,19 +75,29 @@ git branch -f main upstream/main     # main 指回上游；HEAD 不能停在 mai
 git push --force-with-lease origin main:main
 ```
 
-## 3. 定时上游同步（推荐路径，无需手动）
+## 3. 上游同步（手工，`work` ← `upstream/main`）
 
-`.github/workflows/fork-sync-upstream.yml`（位于 `work`，因此也是默认分支上的 workflow）：
+自动同步 workflow（`.github/workflows/fork-sync-upstream.yml`）已于 2026-10-28 下线：它连续多天的定时运行都在 `Sync work` 里撞冲突，随后又在 `Report conflict` 报错（fork 关闭了 Issues，且没有配置 `SYNC_TOKEN`），结果是每晚变红且没有合并任何提交。理由与恢复方式见 [移除定时上游同步](../.agents/notes/implemented/process/2026-10-28-remove-scheduled-upstream-sync.md)。现在上游同步全部手工执行，流程固定为下面三条命令加一遍检查。
 
-- 触发：`cron: 0 18 * * *`（UTC 18:00 = 北京次日 02:00），以及手动 `workflow_dispatch`。
-- 手动触发可选参数：`work_mode`（`merge` 默认 / `none`）、`push_tags`（默认 true）。`rebase` 模式已移除：它会改写 `work` 历史，被 ruleset 拒绝。
-- 步骤与安全阀：
-  1. **Preflight**：确认上游自带的 `publish-images.yml` 仍为 `disabled_manually`，否则中止本次同步。上游那份流水线按 `push: main` 和 `tags: v*` 触发，在 fork 里会往 `ghcr.io/zhuiyue132/*` 重复构建镜像，必须在 fork 中保持禁用（`gh workflow disable publish-images.yml -R zhuiyue132/open-ai-canvas`）。
-  2. **Mirror main**：`git push origin upstream/main:main`，不带 `--force`，`main` 一旦被污染就报错停摆而不是覆盖。
-  3. **Mirror tags**：`git fetch upstream --tags --force` 后 `git push origin --tags`。上游改写同名 tag 会失败并要求人工确认，不静默覆盖。
-  4. **Sync work**：把 `upstream/main` 合并进 `work` 并推送；冲突就 `--abort` 保持仓库原样，开/更新 issue「上游同步冲突：work ← upstream/main」列出冲突文件，同时让 job 变红。
-- 必须配置仓库 secret `SYNC_TOKEN`：fine-grained PAT，仓库只选本 fork，权限 **Contents: Read and write** + **Workflows: Read and write**（可选 **Actions: Read and write**，让预检能自动关掉被重新启用的发布流水线）。原因：上游经常改 `.github/workflows/*`，默认 `GITHUB_TOKEN` 推送含 workflow 改动的提交会被 GitHub 拒绝（`refusing to allow a GitHub App to create or update workflow ... without workflows permission`）。
-- 注意：GitHub 会在仓库 60 天无活动后自动停用定时工作流，届时在 Actions 页面点 Enable。
+```bash
+git fetch upstream --prune --tags --force
+
+# 1. main 是上游纯镜像：只允许快进对齐，不带 --force
+git switch main && git merge --ff-only upstream/main && git push origin main
+
+# 2. work 只走 merge：rebase 会改写历史，被 ruleset 拒绝
+git switch work && git merge upstream/main   # 解完冲突后 git push origin work
+
+# 3. 上游 tag 同步（按需；上游改写同名 tag 会失败，要求人工确认）
+git push origin --tags
+```
+
+`main` 一旦被污染（有人在上面直接提交），`merge --ff-only` 或推送会失败而不是覆盖；确认后按第 2 节临时停用 ruleset，用 `git push --force-with-lease` 修正，再恢复规则。上游 tag 与二开 tag 不要同名：同步会把上游 `v*` tag 推进本仓库，二开用日期版本号 `vYYYY.MM.DD-HHMM`（北京时间），见第 6 节。
+
+同步前后的固定检查：
+
+- **同步前**：`gh workflow list --repo zhuiyue132/open-ai-canvas --all` 里 `Publish container images` 必须仍是 `disabled_manually`。上游那份流水线按 `push: main` 与 `tags: v*` 触发，启用后每次同步都会往 `ghcr.io/zhuiyue132/*` 重复构建镜像。原来由同步 workflow 的 preflight 自动复查，现在靠这条手工检查（或 `gh workflow disable publish-images.yml -R zhuiyue132/open-ai-canvas`）。
+- **同步后**：跑「冲突结算规则」末尾的收尾清单。
 
 ### 冲突结算规则（`work` ← `upstream/main`）
 
@@ -99,8 +109,8 @@ git push --force-with-lease origin main:main
 | 根 README 的展示内容 | 赞助商、3D 预演台赞助用户、贡献者名单、共享演示账号密码 | 取 `work` 侧策略：这些区块删除，演示站只留链接；上游新增的产品介绍、能力清单与 `assets/screenshots/` 保留。依据见 [`sponsors-contributors-removal`](../.agents/notes/implemented/simplification/2026-10-15-sponsors-contributors-removal.md) |
 | 文档索引与参考文档 | `docs/index.md`、`docs/content/docs/**`、`README.md` 的「文档导航」 | 索引取 `work` 侧（只列参考类文档，上游遗产按目录描述、不逐篇链接）；参考文档正文取上游 |
 | 上游遗产（只读） | `docs/adr/`、`docs/design/`、`docs/plans/`、`docs/superpowers/specs/` | 取上游（含新增篇目）；本仓库不改写、不为它补索引链接 |
-| 二开约定与工作流 | `AGENTS.md`、`.agents/**`、`docs/AGENT_LOCAL_DEVELOPMENT.md`、`README.md` 的部署与验证段、`.github/workflows/`（`quality`、`fork-sync-upstream`、`publish-fork-images`、`verify-*`）、`scripts/fork-deploy-image.sh` | 取 `work` 侧；上游在 `.github/workflows/` 的新增与修改按需吸收，但不得启用上游 `publish-images.yml`（同步 preflight 会复查） |
-| 版本身份 | `VERSION`、`CHANGELOG.md`、上游 `v*` tag | 取上游（发布身份跟随上游版本号）；二开 tag 用日期版本号，见第 7 节 |
+| 二开约定与工作流 | `AGENTS.md`、`.agents/**`、`docs/AGENT_LOCAL_DEVELOPMENT.md`、`README.md` 的部署与验证段、`.github/workflows/`（`quality`、`publish-fork-images`、`verify-*`）、`scripts/fork-deploy-image.sh` | 取 `work` 侧；上游在 `.github/workflows/` 的新增与修改按需吸收，但不得启用上游 `publish-images.yml`（每次同步前手工复查，见本节开头） |
+| 版本身份 | `VERSION`、`CHANGELOG.md`、上游 `v*` tag | 取上游（发布身份跟随上游版本号）；二开 tag 用日期版本号，见第 6 节 |
 | 测试与夹具 | `web/test/**`、`backend/**/*_test.go`、`web/src/**/*.test.ts` | 实现对齐后取上游版本；`work` 侧的类型修复不抢上游内容，冲突解决后重跑门禁再补 |
 | 上游已删除的模块 | 旧 `web/src/pages/projects/detail/`、随其删除的测试与文档锚点 | 接受上游删除，不为旧路径写兼容层，也不把旧测试移植到新模块；新模块的行为面由上游用例加同步时补的专项覆盖 |
 | 上游缺陷的二开修复 | `.agents/notes/implemented/bug-fix/` 里记录的上游 bug 修复 | 保留 `work` 修复；若上游已自行修好同一处，取上游实现并在笔记里标注被上游覆盖 |
@@ -118,23 +128,7 @@ git push --force-with-lease origin main:main
 - `python3 .github/scripts/check-env-docs.py`、决策笔记三线校验、`cd backend && go test ./...`、`cd web && bun run build && bun test`。
 - 冲突里的每个非机械取舍写进 `.agents/notes/implemented/process/` 的同步笔记（例：[v1.7.2 同步](../.agents/notes/implemented/process/2026-10-28-upstream-sync-v1-7-2.md)），供下一次同步直接引用。
 
-## 4. 手工同步（不想等定时任务）
-
-手工路径同样按上面「冲突结算规则」处理冲突。
-
-```bash
-git fetch upstream --prune
-git switch main && git merge --ff-only upstream/main && git push origin main
-git switch work && git merge upstream/main && git push origin work
-```
-
-只同步 tag：
-
-```bash
-git fetch upstream --tags --force && git push origin --tags
-```
-
-## 5. 本地钩子：禁止在 main 上提交
+## 4. 本地钩子：禁止在 main 上提交
 
 `.git/hooks/pre-commit`（本地文件，不进仓库）：
 
@@ -162,22 +156,22 @@ chmod +x .git/hooks/pre-commit
 git hook run pre-commit            # 自检：在 main 上应报错退出
 ```
 
-## 6. 常见坑
+## 5. 常见坑
 
 - **不要在 `work` 上强推**（现在会被 ruleset 拒绝，见 §2）。上游同步固定走 `merge`：`rebase` 需要改写历史，规则会直接拒绝；若工作区已被 rebase 过，先 `git reset --hard origin/work` 回到远端状态再合并。
 - **`main` 的跟踪关系**：本地 `main` 跟踪 `origin/main`（fork 的镜像分支），`git pull` 拿到的是 fork 的镜像，不是上游；要拉上游必须显式 `git fetch upstream`。
-- **不要在 fork 里复用上游的发布流水线**。`publish-images.yml` 已禁用（同步工作流的 preflight 会强制保持 `disabled_manually`），二开发布需要一份独立名字的工作流，见 §7。
-- **上游 tag 与二开 tag 不要同名**。同步工作流会把上游 `v*` tag 推到这个仓库；二开用日期版本号 `vYYYY.MM.DD-HHMM`（北京时间），与上游 `v1.x` 号段不相交，见 §7。
-- **不要照 README 的一键命令部署二开版本**。`scripts/install-server-image.sh` 默认指向 `ghcr.io/ddcat-ai/...` 和上游 Compose，装出来的是上游代码且不会报错；二开部署走 `scripts/fork-deploy-image.sh`，见 §7。
+- **不要在 fork 里复用上游的发布流水线**。`publish-images.yml` 必须保持 `disabled_manually`（手工同步时自己复查），二开发布需要一份独立名字的工作流，见 §6。
+- **上游 tag 与二开 tag 不要同名**。同步会把上游 `v*` tag 推到这个仓库；二开用日期版本号 `vYYYY.MM.DD-HHMM`（北京时间），与上游 `v1.x` 号段不相交，见 §6。
+- **不要照 README 的一键命令部署二开版本**。`scripts/install-server-image.sh` 默认指向 `ghcr.io/ddcat-ai/...` 和上游 Compose，装出来的是上游代码且不会报错；二开部署走 `scripts/fork-deploy-image.sh`，见 §6。
 - **`web/vercel.json` 是上游初始提交里的 Vercel 配置，本仓库不使用也不维护**。部署只走 Docker + nginx（根 `Dockerfile` + `nginx.conf`）；照该文件把前端部署到 Vercel 不会有 `/api` 代理，接口全部 404。
 
-## 7. 二开发布与部署身份
+## 6. 二开发布与部署身份
 
 二开改动要能真正上线，镜像、Compose、更新器三样都必须指向二开仓库；只覆盖其中一样会得到"半上游"部署（例如新后端配旧 nginx 配置）。约定如下：
 
 | 身份 | 二开取值 | 为什么不能沿用上游 |
 | --- | --- | --- |
-| 版本 tag | 日期版本号 `vYYYY.MM.DD-HHMM`（北京时间），例如 `v2026.10.22-1706` | 同步工作流会把上游 `v*` tag 推到本仓库，同名会互相覆盖；日期号段与上游 `v1.x` 不相交 |
+| 版本 tag | 日期版本号 `vYYYY.MM.DD-HHMM`（北京时间），例如 `v2026.10.22-1706` | 手工同步会 `git push origin --tags` 把上游 `v*` tag 推到本仓库，同名会互相覆盖；日期号段与上游 `v1.x` 不相交 |
 | 镜像标签 | 同一个串去掉 `v`（`2026.10.22-1706`） | 安装脚本与更新器都会删 `v` 前缀再拉镜像，与上游 `v1.6.9` → `1.6.9` 一致 |
 | 镜像仓库 | `ghcr.io/zhuiyue132/open-ai-canvas-{backend,web,yingce-agent}` | 上游镜像里没有二开代码 |
 | Compose | `raw.githubusercontent.com/zhuiyue132/open-ai-canvas/<tag>/docker-compose.deploy.yml` | 上游 Compose 指向上游镜像 |

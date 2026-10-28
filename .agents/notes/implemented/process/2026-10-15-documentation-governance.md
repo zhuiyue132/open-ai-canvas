@@ -28,7 +28,7 @@ bun run .agents/skills/write-notes-like-deepseek/scripts/verify-archived-agent-n
 
 ## Alternatives considered
 
-- **物理删除 40 篇遗产文档** — 树最干净，检索不再撞到旧体系，`docs/` 的失效链接可以一次性清零。否决理由：上游近 30 天对 `docs/content/docs/` 有 172 次提交、`docs/design/` 有 14 次，删除后每轮同步都会在 modify/delete 上冲突（自定义 merge driver 对 modify/delete 不生效），只能维护"废弃路径清单"并在每次合并后重复删除，把每日自动同步变成持续人工介入。
+- **物理删除 40 篇遗产文档** — 树最干净，检索不再撞到旧体系，`docs/` 的失效链接可以一次性清零。否决理由：上游近 30 天对 `docs/content/docs/` 有 172 次提交、`docs/design/` 有 14 次，删除后每轮同步都会在 modify/delete 上冲突（自定义 merge driver 对 modify/delete 不生效），只能维护"废弃路径清单"并在每次合并后重复删除，把自动同步变成持续人工介入（当时是每日自动同步；2026-10-28 起改为手工同步，见 [移除定时上游同步](./2026-10-28-remove-scheduled-upstream-sync.md)）。
 - **沿用 `docs/adr/` 并只补脚本门与链接检查** — 改动最小，能立刻消除失效引用与格式漂移，且 ADR 已有的「状态／决定／考虑过的方案」骨架接近目标结构。否决理由：该目录只有"已接受"一种状态（现存 10 篇全部如此），被否方案压缩在正文里，没有 proposed/rejected 生命周期；同时上游会继续向这些路径新增条目，真相源会在两套体系间来回漂移。
 - **把 40 篇按笔记模板重写进 `.agents/notes/`** — 单一体系最彻底，检索一致性最好。暂不做：逐篇重读历史动机、路径与验证细节的工程量集中在一次性迁移上，期间两套并存，改写还引入事实失真风险；若之后要收敛，作为独立决策处理。
 

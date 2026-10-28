@@ -6,7 +6,7 @@ Status: implemented
 
 二开主线的保护此前只存在于文档里：`docs/AGENT_LOCAL_DEVELOPMENT.md` 写着"不要在 `work` 上强推"，但仓库没有任何机械约束，`work` 也没有分支保护（`gh api .../branches/work/protection` 返回 404，rulesets 为空）。一次误敲的 `git push --force` 就能把主线改写到本地状态，冲掉别人（或另一个 Agent）已推送的提交；而每日上游同步默认就是"合并后推 `work`"，被强推冲掉的那批提交不会自动回来。
 
-同一个问题在同步工作流里有第二种形态：`fork-sync-upstream.yml` 提供 `work_mode=rebase` 选项，它用 `git rebase` + `git push --force-with-lease` 把上游提交排到前面。这条路径要求改写远端历史，与"主线只能快进"的期望直接矛盾。
+同一个问题在同步工作流里有第二种形态：`fork-sync-upstream.yml`（已于 2026-10-28 下线，见 [移除定时上游同步](./2026-10-28-remove-scheduled-upstream-sync.md)）提供 `work_mode=rebase` 选项，它用 `git rebase` + `git push --force-with-lease` 把上游提交排到前面。这条路径要求改写远端历史，与"主线只能快进"的期望直接矛盾。
 
 还发现"保护看起来生效"的最常见误判：`git push --dry-run --force` **不会**校验 ruleset（本地就短路成"Everything up-to-date"或"forced update"），拿它当验证手段会得出错误结论。
 
@@ -25,7 +25,7 @@ Status: implemented
 
 ## Alternatives considered
 
-- **只加"要求 PR + 状态检查"的经典分支保护** — 这是最标准的做法，能把质量门和评审一起强制执行。否决理由：本仓库单人二开、日常直推 `work`，`fork-sync-upstream.yml` 也用 PAT 直推；要求 PR 会在同步与日常提交两条路径上同时制造失败，而 ruleset 的"要求状态检查"对直推不生效（检查在推送后执行），等于既打断工作流又拿不到保护。
+- **只加"要求 PR + 状态检查"的经典分支保护** — 这是最标准的做法，能把质量门和评审一起强制执行。否决理由：本仓库单人二开、日常直推 `work`，当时的同步 workflow（现已下线）也用 PAT 直推；要求 PR 会在同步与日常提交两条路径上同时制造失败，而 ruleset 的"要求状态检查"对直推不生效（检查在推送后执行），等于既打断工作流又拿不到保护。
 - **保留 `rebase` 同步模式，给它配置 bypass** — 既保住历史线性化的能力，又不影响日常推送。否决理由：ruleset 的 bypass 只能按角色/用户/App 配置，而同步用的是仓库管理员的 PAT，给管理员开 bypass 等于规则对唯一的使用者失效；真正需要线性历史时，临时停用规则是更诚实的做法，也留下审计痕迹。
 - **不改同步工作流，等 `rebase` 真的失败再处理** — 改动最小。否决理由：留着一个必然失败的选项，失败信息会误导（看起来像权限或网络问题），而排查成本落在未来的自己身上。
 - **用本地 pre-commit 钩子代替服务端规则** — 零服务端配置，能挡住本机的误操作。否决理由：钩子不随仓库分发（`.git/hooks` 不进版本控制），换机器就失效，也拦不住另一个 Agent 或脚本发出的推送。

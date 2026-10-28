@@ -1,7 +1,7 @@
 name: Publish fork container images
 
 # 二开自己的镜像与 Release 流水线。上游继承来的 publish-images.yml 必须保持
-# `disabled_manually`（fork-sync-upstream.yml 的 preflight 会强制），所以这份用独立文件名。
+# `disabled_manually`（手工同步前复查，见 docs/AGENT_LOCAL_DEVELOPMENT.md 第 3 节），所以这份用独立文件名。
 #
 # 二开版本号是「日期 + 时分」：tag 形如 `v2026.10.22-1706`（北京时间，与上游的 v1.x 号段天然不相交），
 # 不再打 fork- 前缀。日期必须点分成 >= 3 段数字：host-updater 的 CompareVersions 只把这种 tag

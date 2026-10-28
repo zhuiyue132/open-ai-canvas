@@ -2,6 +2,8 @@
 
 Status: implemented
 
+> 事实更新（2026-10-28）：`fork-sync-upstream.yml` 已下线，「同步工作流的 preflight 强制 `publish-images.yml` 保持 `disabled_manually`」改为手工同步前复查，见 [移除定时上游同步](./2026-10-28-remove-scheduled-upstream-sync.md)。质量门结论不变。
+
 ## Problem
 
 二开仓库把上游的 `quality.yml` 原样继承下来，但触发条件与二开的工作方式不匹配：上游靠 PR 拿到检查，本仓库的日常提交直推默认分支 `work`。结果是**代码级质量门一次都没执行过**：

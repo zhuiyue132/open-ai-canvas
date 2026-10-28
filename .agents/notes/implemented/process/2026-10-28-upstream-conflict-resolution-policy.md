@@ -4,7 +4,7 @@ Status: implemented
 
 ## Problem
 
-`work` 每天由 `.github/workflows/fork-sync-upstream.yml` 把 `upstream/main` 合并进来，冲突时 workflow 只做三件事：`--abort`、开 issue「上游同步冲突：work ← upstream/main」并列出冲突文件、让 job 变红。文档里只有**机制**（`docs/AGENT_LOCAL_DEVELOPMENT.md` 第 3 节：main 是纯镜像、work 只走 merge、冲突就中止），没有任何**内容规则**：哪个文件的冲突该取上游、哪个该取二开。
+上游同步当时由 `.github/workflows/fork-sync-upstream.yml` 驱动（该 workflow 当日稍晚被移除，见 [移除定时上游同步](./2026-10-28-remove-scheduled-upstream-sync.md)），冲突时 workflow 只做三件事：`--abort`、开 issue「上游同步冲突：work ← upstream/main」并列出冲突文件、让 job 变红。文档里只有**机制**（`docs/AGENT_LOCAL_DEVELOPMENT.md` 第 3 节：main 是纯镜像、work 只走 merge、冲突就中止），没有任何**内容规则**：哪个文件的冲突该取上游、哪个该取二开。
 
 结果是同一条推理每次同步都要重做一遍。v1.7.2 同步（[同步笔记](./2026-10-28-upstream-sync-v1-7-2.md)）的 6 个冲突里，4 个不是文本重叠，而是两条既有决定正面相遇：README 是否承载赞助与致谢、`docs/index.md` 是否逐篇列举上游设计文档、欢迎页是否还有贡献者卡片、旧工作流视图的测试是否还有存在意义。当时的结算依据分散在四篇笔记（`sponsors-contributors-removal`、`documentation-governance`、`docs-versioned-in-repo`、`feature-map-as-verification-surface`）里，需要临时检索才能拼出结论。
 
@@ -16,7 +16,7 @@ Status: implemented
 
 1. **`docs/AGENT_LOCAL_DEVELOPMENT.md` 第 3 节新增「冲突结算规则（work ← upstream/main）」**：9 类文件各一行（上游产品实现、根 README 展示内容、文档索引与参考文档、上游只读遗产、二开约定与工作流、版本身份、测试与夹具、上游已删除的模块、上游缺陷的二开修复），每行给出典型文件与结算方式，附判定顺序与收尾清单。第 4 节「手工同步」加一句“同样按该规则处理”，避免手工路径成为规则外的旁路。
 2. **`AGENTS.md` 第 7 节加一条约束**：冲突按该表结算，不逐次重新论证；表里没有的新类别按「上游实现 + work 策略」保守处理，并在同一次同步里把规则补进表；解完冲突必须补跑 `bun run typecheck:test`、`verify-feature-map`、`check-env-docs.py`，非机械取舍写进同步笔记。`AGENTS.md` 是协作者与 AI 的入口，规则不能只活在 `docs/` 里。
-3. **同步 workflow 的冲突 issue 正文引用规则**：issue 是人工介入的实际入口，正文直接给出规则位置、保守默认和推送前必跑的命令，收 issue 的人不需要先读完全部文档。
+3. **同步 workflow 的冲突 issue 正文引用规则**（当次已改，随后该 workflow 被整体移除）：issue 是人工介入的实际入口，正文直接给出规则位置、保守默认和推送前必跑的命令。workflow 下线后规则由前两处承载，第 3 节删掉同步入口后不再有 issue 报告链路。
 
 判定顺序固定为「查表 → 查既有笔记与 `AGENTS.md` → 保守默认 + 补规则」，避免每次都从「这次算不算例外」开始争论。
 
@@ -38,6 +38,6 @@ Status: implemented
 ## Verification
 
 - `docs/AGENT_LOCAL_DEVELOPMENT.md` 第 3 节新增小节可被第 4 节、`AGENTS.md` 第 7 节与 workflow issue 正文三处引用；三处措辞指向同一张表。
-- `.github/workflows/fork-sync-upstream.yml` 改动后用 `python3 -c "import yaml; yaml.safe_load(open(...))"` 解析通过，`jobs.sync.steps` 仍为 10 步、顺序未变。
+- `.github/workflows/fork-sync-upstream.yml` 改动后用 `python3 -c "import yaml; yaml.safe_load(open(...))"` 解析通过，`jobs.sync.steps` 仍为 10 步、顺序未变（该 workflow 随后在 [移除定时上游同步](./2026-10-28-remove-scheduled-upstream-sync.md) 中删除，此条记录的是当次改动）。
 - 决策笔记三线校验（`verify-agent-note-tree`、`verify-agent-note-format`、`verify-archived-agent-notes`）通过。
 - 未做：让 workflow 在 Actions 上真实跑一次冲突分支（冲突路径需要上游真冲突才能触发），本次只验证 YAML 与文本路径。

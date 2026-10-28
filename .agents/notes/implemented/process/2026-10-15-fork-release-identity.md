@@ -3,13 +3,15 @@
 Status: implemented
 
 > 版本号方案已由 [日期版本号发布](./2026-10-22-date-based-release-tags.md) 取代（`fork-v<上游版本>.<序号>` → `vYYYY.MM.DD-HHMM`）；镜像仓库、Compose、Host Updater 与部署入口的身份约定仍然有效。
+>
+> 事实更新（2026-10-28）：`fork-sync-upstream.yml` 已下线，本文提到的「同步工作流的 preflight 强制保持 `disabled_manually`」与「每日推送上游 tag」都改为手工同步前的检查与 `git push origin --tags`，见 [移除定时上游同步](./2026-10-28-remove-scheduled-upstream-sync.md)。身份约定本身不变。
 
 ## Problem
 
 二开仓库继承的部署文档默认装的是**上游代码**，而且不会报错：
 
 - `scripts/install-server-image.sh` 的默认值是 `IMAGE_REPOSITORY=ghcr.io/ddcat-ai/open-ai-canvas`、`COMPOSE_URL=https://raw.githubusercontent.com/ddcat-ai/open-ai-canvas/<ref>/docker-compose.deploy.yml`、`UPDATER_INSTALL_URL` 同理；根 `README.md` 的一键部署命令也直接调用上游 raw 地址。照抄执行后，容器里跑的是上游镜像与上游 Compose，二开改动一行都不会生效，也没有任何提示。
-- `publish-images.yml` 在本仓库是 `disabled_manually`（`fork-sync-upstream.yml` 的 preflight 要求它保持该状态，否则每次同步都会重跑几十次镜像构建并让同步失败），所以本仓库没有产出镜像、Release 资产与 `SHA256SUMS` 的路径。
+- `publish-images.yml` 在本仓库是 `disabled_manually`（原 `fork-sync-upstream.yml` 的 preflight 要求它保持该状态，否则每次同步都会重跑几十次镜像构建并让同步失败；该 workflow 已于 2026-10-28 下线，现由手工同步前复查，见 [移除定时上游同步](./2026-10-28-remove-scheduled-upstream-sync.md)），所以本仓库没有产出镜像、Release 资产与 `SHA256SUMS` 的路径。
 - tag 命名空间与上游共享：同步工作流每天 `git fetch upstream --tags --force && git push origin --tags`，上游发布 `v1.6.8.4` 会占用本仓库同名 tag，二开自己的版本号无处安放。
 
 三者叠加的后果是：二开版本既发不出来，也无法被"官方 Release + Host Updater"这条（AGENTS.md 指定的默认）路径安装，而唯一能用的默认命令装的是别人的代码。
