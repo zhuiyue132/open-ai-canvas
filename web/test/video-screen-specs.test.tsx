@@ -112,7 +112,17 @@ test("custom resolution labels survive alongside presets", () => {
 
 test("selecting an AutoDL upstream writes the resolved spec into the form value", () => {
     const protocols = [{ value: "autodl-comfyui", label: "AutoDL", capability: "video" as const, create: "", contentType: "application/json", media: "", enabled: true, workflows: [workflow, genericWorkflow] }];
-    const values = { modelKey: "minimax_h3_zm_nono", providerModelKey: "", tags: [], capability: "video" as const, protocol: "autodl-comfyui", priceTiers: [], priceCurrency: "credits" as const, enabled: true, capabilityConfig: defaultModelCapabilityConfig("autodl-comfyui", "") };
+    const values = {
+        modelKey: "minimax_h3_zm_nono",
+        providerModelKey: "",
+        tags: [],
+        capability: "video" as const,
+        protocol: "autodl-comfyui",
+        priceTiers: [],
+        priceCurrency: "credits" as const,
+        enabled: true,
+        capabilityConfig: defaultModelCapabilityConfig("autodl-comfyui", ""),
+    };
     const next = updateChannelModelUpstreamCapabilities(values, protocols);
     expect(next.capabilityConfig?.video?.resolutions).toEqual(genericWorkflow.parameters[0]!.values!);
     expect(next.capabilityConfig?.video?.defaultResolution).toBe("768p竖");
