@@ -71,7 +71,7 @@
 
 ### 画布内云端 Agent
 
-- **抵达**：画布编辑器内助手面板，无独立路由；外观与开关在 `/admin/settings/appearance`。
+- **抵达**：画布编辑器内助手面板，无独立路由；支持浮窗与右侧停靠，布局入口在面板菜单；外观与开关在 `/admin/settings/appearance`。
 - **锚点**：`web/src/components/canvas/canvas-cloud-agent-panel.tsx`（对话、技能、审批）、`web/src/services/api/agent.ts`（运行与 SSE）、`web/src/lib/canvas/canvas-operation-contract.ts`（画布操作契约）；后端 `backend/internal/app/cloud_agent.go`、`backend/internal/agent/tool/policy.go`（工具分类与可见性单一来源）、`backend/internal/prompts/agent-system-policy.md`（行为策略）；运行时 `backend/agent-runtime/pi/agent-runtime.mjs`。
 - **验收**：`cd web && bun test test/canvas-agent-focus.test.ts test/agent-canvas-sync.test.ts test/agent-approval-presentation.test.ts`。
 - **陷阱**：设置 `YINGCE_AGENT_URL` 后只调 `yingce-agent` 容器，不设置才在进程内起 Node。远程失败不会回退到内嵌进程——排查时先确认走的是哪条路，别在同一步上怀疑 Agent 执行两遍。
@@ -98,6 +98,13 @@
 - **锚点**：`web/src/pages/projects/studio/script-view.tsx`、`web/src/pages/projects/studio/storyboard.tsx`、`web/src/pages/projects/studio/segment-dialog.tsx`、`web/src/pages/projects/studio/segment-parts.tsx`、`web/src/pages/projects/studio/final-view.tsx`；后端 `backend/internal/app/drama_service.go`、`backend/internal/app/drama_storyboard_test.go`、`backend/internal/production/storyboard.go`、`backend/internal/production/segment_prompt.go`。
 - **验收**：`cd backend && go test ./internal/app -run 'Drama|Storyboard'`；`cd web && bun test src/lib/drama/storyboard.test.ts src/lib/drama/asset-prompt.test.ts`。
 - **陷阱**：参考图与段提示词是版本耦合的——改设定文字或镜头会让已写好的提示词与段视频标记过期，只重做参考图则提示词保持有效。断言「提示词过期」前先确认改的是镜头还是仅换参考图。
+
+### 短剧精修画布
+
+- **抵达**：制作台剧情段弹窗「在画布中精修」进入 `/canvas/:id`，查询参数 `drama` 指定作品，`dramaFocus` 指定投送或定位对象；关联短剧的画布左侧显示短剧侧栏。
+- **锚点**：`web/src/services/drama-canvas.ts`（画布解析与跳转）、`web/src/lib/canvas/drama-canvas-projection.ts`（投送节点）、`web/src/components/canvas/canvas-drama-sidebar.tsx`、`web/src/components/canvas/canvas-drama-adopt-modal.tsx`；后端 `backend/internal/app/drama_canvas.go`。
+- **验收**：`cd backend && go test ./internal/app -run Drama`；投送后在画布节点上「采用到短剧」，成功后制作台显示新的参考图或剧情段视频版本。
+- **陷阱**：投送到画布不等于采用；采用只接受服务端资源，正在生成或仅有外部链接的节点不能采用。
 
 ## 4. 资源与工具
 
@@ -131,8 +138,8 @@
 
 ### 技能库
 
-- **抵达**：`/skills`，页头「技能库」；侧栏「技能」。单个技能的包编辑器与文件树走 `/skills/:skillId/edit`。
-- **锚点**：`web/src/pages/skills/index.tsx`、技能工作台 `web/src/pages/skills/workbench`；API `web/src/services/api/skills.ts`、`web/src/services/skill-runtime.ts`；后端 `backend/internal/handler/skills.go`（`RegisterSkillRoutes`）、`backend/internal/skills/`。
+- **抵达**：`/skills`，页头「技能库」；侧栏「技能」。单个技能的包编辑器与文件树走 `/skills/:skillId/edit`；工具栏「按行业推荐」打开推荐安装弹窗。
+- **锚点**：`web/src/pages/skills/index.tsx`、技能工作台 `web/src/pages/skills/workbench`、`web/src/components/skills/skill-recommendations-modal.tsx`；API `web/src/services/api/skills.ts`、`web/src/services/skill-runtime.ts`；后端 `backend/internal/handler/skills.go`（`RegisterSkillRoutes`）、`backend/internal/skills/`。
 - **验收**：`cd web && bun test test/skills-api.test.ts test/skill-runtime.test.ts test/skill-defaults.test.ts`；平台分类策展在 `/admin/skill-curation`。
 - **陷阱**：技能分「已安装」和「可安装」，运行时要先选 runtime（`web/src/components/skills/skill-runtime-picker.tsx`）。
 
@@ -155,8 +162,8 @@
 ### 设置
 
 - **抵达**：`/settings`；用户卡片「账户与设置」或 ⌘K「设置」。支持 `?section=` 深链（`web/src/pages/settings/index.tsx` 的 `configSections`），取值 `profile`、`channels`、`runninghub`、`models`、`preferences`、`prompts`、`agent-memory`、`storage`、`diagnostics`；非法值回落到 `profile`。
-- **锚点**：`web/src/pages/settings/index.tsx` 分发分区；`web/src/pages/settings/profile-pane.tsx` + `web/src/pages/settings/profile-validation.ts`（头像、密码、邮箱）；`web/src/pages/settings/agent-memory-pane.tsx` + `web/src/pages/settings/agent-memory-proposals.tsx`；`web/src/services/api/profile.ts`；后端 `backend/internal/handler/auth_profile.go`、`backend/internal/handler/custom_proxy.go`（自定义渠道中转）。
-- **验收**：`cd web && bun test test/password-reset.test.ts`；改密码和换邮箱成功后退出所有会话，断言「仍登录」会失败。
+- **锚点**：`web/src/pages/settings/index.tsx` 分发分区；`web/src/pages/settings/profile-pane.tsx` + `web/src/pages/settings/profile-validation.ts`（头像、密码、邮箱）；`web/src/pages/settings/agent-memory-pane.tsx` + `web/src/services/api/agent-memory.ts`（记忆文件、修改历史与撤销）；`web/src/services/api/profile.ts`；后端 `backend/internal/handler/auth_profile.go`、`backend/internal/handler/custom_proxy.go`（自定义渠道中转）、`backend/internal/handler/agent_memory_document.go`。
+- **验收**：`cd web && bun test test/password-reset.test.ts`、`cd backend && go test ./internal/app -run Memory`；改密码和换邮箱成功后退出所有会话；`?section=agent-memory` 显示长期记忆文件与历史，Agent 修改可按记录模式审核或撤销。
 - **陷阱**：侧栏没有设置入口。`customChannelsEnabled` 关闭只隐藏「个人渠道」，`?section=channels` 回落到 `models`；RunningHub 入口要求 `runtimeStatuses[RUNNINGHUB_PLUGIN_ID] === "enabled"`，与个人渠道开关独立，插件未启用时 `?section=runninghub` 回落到 `profile`。
 
 ### 钱包（全局浮层，不是页面）
@@ -188,6 +195,7 @@
 | --- | --- | --- |
 | 数据看板 | `/admin` | `web/src/pages/admin/admin-route-pages.tsx`（`AnalyticsPage`） |
 | 用户 | `/admin/users` | `web/src/pages/admin/users/users-page.tsx` |
+| 用户分组 | `/admin/user-groups` | `web/src/pages/admin/user-groups/user-groups-page.tsx`；API `web/src/services/api/user-groups.ts`；后端 `backend/internal/app/user_groups.go`；验收 `cd backend && go test ./internal/app -run UserGroup` |
 | 用户登录日志 | `/admin/login-logs` | `web/src/pages/admin/login-logs/login-logs-page.tsx` |
 | 用户反馈 | `/admin/feedbacks` | `web/src/pages/admin/feedbacks/feedbacks-page.tsx` |
 | 推广管理 | `/admin/referral` | `web/src/pages/admin/referral/referral-admin-page.tsx` |
@@ -200,7 +208,7 @@
 | 提示词模板 | `/admin/prompt-templates` | `web/src/pages/admin/storyboard-prompts/storyboard-prompts-page.tsx` |
 | 公告 | `/admin/announcements` | `web/src/pages/admin/admin-route-pages.tsx`（`AnnouncementsPage`） |
 | 横幅公告 | `/admin/banner-announcements` | `web/src/pages/admin/admin-route-pages.tsx`（`BannerAnnouncementsPage`） |
-| Agent 经验 | `/admin/agent-lessons` | `web/src/pages/admin/admin-route-pages.tsx`（`AgentLessonsPage`）→ `web/src/pages/admin/components/agent-lessons-panel.tsx` |
+| Agent 记忆 | `/admin/agent-lessons` | `web/src/pages/admin/admin-route-pages.tsx`（`AgentLessonsPage`）→ `web/src/pages/admin/components/agent-memory-documents-panel.tsx`（默认只读记忆文件）、`web/src/pages/admin/components/agent-lessons-panel.tsx`（旧版经验） |
 | 存储资源 | `/admin/resources` | `web/src/pages/admin/admin-route-pages.tsx`（`StorageResourcesPage`） |
 | 积分运营 | `/admin/credit-operations` | `web/src/pages/admin/admin-route-pages.tsx`（`CreditOperationsPage`） |
 | 兑换码 | `/admin/redemption-codes` | `web/src/pages/admin/redemption-codes/redemption-codes-page.tsx` |

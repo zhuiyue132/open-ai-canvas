@@ -85,4 +85,4 @@ Status: implemented
 - 前端：`bun run typecheck`、`bun run typecheck:test`、`bun run test:gate` 通过；`bun test` 全量 2868 pass / 0 fail（含 `test/appearance-bootstrap.test.ts` 的「初始 HTML 不含内置品牌名」与「恢复默认品牌标识」断言、`test/workspace-route-loading.test.ts` 的启动层不得包含品牌字串、`test/oss-settings.test.ts` 的路径前缀默认值）；`bun run build` 通过。
 - 未做浏览器验收：登录页、顶栏、欢迎页、预演台、管理后台外观设置的实际渲染，以及存量实例重置后的品牌回退行为，记录在 `docs/content/docs/progress/pending-test.mdx`。
 
-相关决策见[品牌首页走独立公开入口](./2026-10-15-welcome-brand-homepage.md)，那篇讲的公开首页与外观体系结构未变。
+相关决策见[品牌首页走独立公开入口](./2026-10-15-welcome-brand-homepage.md)，那篇讲的公开首页与外观体系结构未变。后续新增插件与协议修复沿用相同品牌边界，具体冲突与产物核对见 [v1.7.3 同步](../process/2026-10-29-upstream-sync-v1-7-3.md)。
