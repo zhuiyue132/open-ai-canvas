@@ -150,7 +150,7 @@ cd web && bun run dev
 
 ## 8. 验证纪律
 
-项目在 `work` 分支的每次推送和每个 PR 上都会跑 `.github/workflows/quality.yml`（后端 go test + PostgreSQL/Redis 依赖用例、前端 typecheck/build/lint/test/P0 E2E、支付插件产物、Compose 与 nginx 配置校验、依赖漏洞与密钥扫描）。本地验证用来在推送前拦住问题，以及覆盖 CI 不做的浏览器验收；沿用下面的命令，不要把“CI 会跑”当作不验证的理由。
+项目在 `work` 分支的每次推送和每个 PR 上都会跑 `.github/workflows/quality.yml`（后端 go test + PostgreSQL/Redis 依赖用例、前端 typecheck/build/lint/test/P0 E2E、支付插件产物、Compose 与 nginx 配置校验、依赖漏洞与密钥扫描）。本地验证用来在推送前拦住问题，以及覆盖 CI 不做的浏览器验收；沿用下面的命令，不要把“CI 会跑”当作不验证的理由。迭代期间按范围选最小充分命令，推送前跑一次「推送前验证」：
 
 - 前端：`cd web && bun run build`；专项测试用 `bun test ...`，本地先跑关键回归可 `bun run test:gate`。UI 退场规则用 `bun run lint`（只禁 antd Empty 和静态 `Modal.confirm`，不是风格检查）。
 - 前端测试类型：`cd web && bun run typecheck:test`（`tsc -p tsconfig.test.json`）是整目录门禁，CI 直接跑；存量 172 处已在 2026-10-19 清零，此后新增测试和上游同步带来的任何测试类型错误都会拦住推送（决策见 `.agents/notes/implemented/testing/2026-10-19-test-typecheck-zero-debt.md`）。
@@ -167,6 +167,20 @@ cd web && bun run dev
 - 验证必须针对真实实现：优先专项测试、类型检查、项目 build 或真实路由浏览器验收。独立 HTML、静态仿制页面和脱离应用状态的截图不能作为真实页面通过的证据。
 
 同类失败连续三次时停止盲试，记录现象、已排除项和新假设，再切换路径或请求用户决策。
+
+### 推送前验证（必须）
+
+推送到 `main` 或任何会触发 CI 的分支前，必须在本地通过 CI「Quality checks」中与改动相关的检查；未通过不得推送，也不要推送后再看 CI 修。`main` 只做上游快进，本节的推送目标实际是 `work`。
+
+1. `git fetch` 后先让本地提交位于最新远端之上：`work` 只允许快进，用 `git merge origin/work` 而不是 rebase；工作区应干净（未提交改动会混进验证结果）。
+2. 在仓库根目录运行 `bun scripts/verify-before-push.mjs`。脚本按相对 `origin/main` 的改动挑选检查并行运行：
+   - Web：改动文件格式（`check-changed-formatting.mjs`，与 CI 同口径）、`typecheck`、`lint`、`bun run test`（含 `pretest`）；改动路径含 `previs` 时加跑预演台 Chrome E2E。
+   - 后端：`gofmt -l`、非 `internal/app` 包测试、`internal/app` 按 CI 方式分 4 片并行；装有 `golangci-lint` 时加跑 Agent 静态检查。
+   - 每项输出写入 `.local/cache/verify/`，失败时打印末尾。`--jobs <n>` 控制并行数（默认 CPU 核数），`--all` 跑全部（含 E2E），`--only web|backend` 只用于迭代，推送前最后一次用默认范围。
+3. 新增或修改的 `web/` 文件按 Prettier 格式化（`cd web && ./node_modules/.bin/prettier --write <文件>`）。只格式化本次改动的文件，不要对整个目录运行 `bun run format`。
+4. 交付说明里列出脚本的总结行，以及「本地未覆盖」的项（支付插件双架构、缺少 PostgreSQL/Redis 时跳过的用例）；这些由 CI 兜底，推送后要确认 CI 结果。脚本不覆盖 `bun run typecheck:test`、决策笔记三线校验与 `verify-feature-map`，改动涉及测试类型、笔记或路由时另行按上面清单补跑。
+
+迭代修改期间不必每次跑全量：只跑受影响的专项测试，最后推送前跑一次脚本。多个 Agent 同时工作时，各自在独立工作区或互不重叠的路径上验证，不要在同一工作区同时运行两份脚本。
 
 ## 9. 文档与交付
 
