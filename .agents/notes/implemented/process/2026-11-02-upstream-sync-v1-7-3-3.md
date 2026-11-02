@@ -10,7 +10,7 @@ Status: implemented
 
 ## Decision
 
-1. **本地 main 只快进，work 只 merge**：`main` 快进到 `82fc5c03` 并推送镜像；`work` 以 `e45a62d4` 为父提交完成合并，不 rebase、不改写历史；本次不推送 `work` 与 tag。同步前确认 `Publish container images` 仍为 `disabled_manually`。
+1. **本地 main 只快进，work 只 merge**：`main` 快进到 `82fc5c03` 并推送镜像；`work` 以 `e45a62d4` 为父提交完成合并，不 rebase、不改写历史。同步前确认 `Publish container images` 仍为 `disabled_manually`；合并与门禁通过后快进推送 `work`，并补齐上游 `v1.7.3*` tag（fork 发布流水线只认日期 tag，不会被上游 tag 触发），不新建二开 tag。
 2. **README 取「上游产品内容 + work 内容边界与部署段」**：删除上游重新加入的 `## 赞助商`、`## 贡献者与团队`、`## 3D 预演台赞助用户`与演示账号密码，保留 `## 服务器部署`；上游在 README 重构里删掉的两句部署指针（「部署服务器并使用后台在线更新，请使用下文的官方 Release 镜像部署」「不安装 Host Updater」）按 `work` 部署段策略补回。依据仍是 [根 README 只留开发内容](../simplification/2026-10-15-sponsors-contributors-removal.md)。
 3. **插件包从「原位改字节」改为「源码重放 + 重新打包」**：上游 v1.7.3.3 用 `plugin-packages/package-directories.mjs` 统一了发行来源，内嵌器与打包脚本改为按包 ID 工作并已幂等。因此三个冲突包（`dashscope-wan3-video`、`minimax-hailuo-video-v2`、`newapi-video-generations-v1`）不再对已提交 `.yingce-plugin` 做等长字节替换，而是：源码取上游 → `影策` 重放为 `意绘` → `node plugin-packages/embed-documentation.mjs <包 ID>` 重建 `documentation` 与内嵌合同 → 按目录 `zip -X` 重新打包 → 逐条目与源码比对。协议修复（Wan 3.0 `$upper` 分辨率、MiniMax 首尾帧混用参考图按请求比例、NewAPI `response.data[]` 视频映射）全部保留，产物作者文案与其余 95 个包一致。规则表同步更新，见 `docs/AGENT_LOCAL_DEVELOPMENT.md` 第 3 节。
 4. **管理后台设计规范取上游、品牌取 work**：`docs/design/admin-ui-design-standard.md` 采用上游的两级可折叠分组侧栏、页面空闲预取与「独立入口不合并页签」描述（实现对上游 `admin-shell.tsx` 一致），只把品牌名与品牌信息块文案保留为「意绘」。
