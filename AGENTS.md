@@ -173,7 +173,7 @@ cd web && bun run dev
 推送到 `main` 或任何会触发 CI 的分支前，必须在本地通过 CI「Quality checks」中与改动相关的检查；未通过不得推送，也不要推送后再看 CI 修。`main` 只做上游快进，本节的推送目标实际是 `work`。
 
 1. `git fetch` 后先让本地提交位于最新远端之上：`work` 只允许快进，用 `git merge origin/work` 而不是 rebase；工作区应干净（未提交改动会混进验证结果）。
-2. 在仓库根目录运行 `bun scripts/verify-before-push.mjs`。脚本按相对 `origin/main` 的改动挑选检查并行运行：
+2. 在仓库根目录运行 `bun scripts/verify-before-push.mjs`。脚本按相对基准分支的改动挑选检查并行运行（`work` 是长期合并分支，用 `--base origin/work`，与 CI 的 `github.event.before` 同口径；默认 `origin/main` 会把只与上游差文案的旧文件也算进改动，报出 CI 不会报的格式错误）：
    - Web：改动文件格式（`check-changed-formatting.mjs`，与 CI 同口径）、`typecheck`、`lint`、`bun run test`（含 `pretest`）；改动路径含 `previs` 时加跑预演台 Chrome E2E。
    - 后端：`gofmt -l`、非 `internal/app` 包测试、`internal/app` 按 CI 方式分 4 片并行；装有 `golangci-lint` 时加跑 Agent 静态检查。
    - 每项输出写入 `.local/cache/verify/`，失败时打印末尾。`--jobs <n>` 控制并行数（默认 CPU 核数），`--all` 跑全部（含 E2E），`--only web|backend` 只用于迭代，推送前最后一次用默认范围。

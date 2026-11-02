@@ -35,7 +35,7 @@ Status: implemented
 ## Consequences
 
 - 收益：电商出品页、短剧步骤模型与计费、素材包导入导出、媒体尺寸修复、时间线导出、后台分组侧栏与调积分进入 `work`；品牌、README 内容边界、部署身份与 CI 门槛全部保留；插件产物的生成方式与上游统一，后续同步只需重跑内嵌器与打包脚本。
-- 代价：插件产物二进制每次同步都会重写（zip 记录 mtime），无法再用「字节不变」判断产物是否被误改，只能靠逐条目比对与 `internal/protocol` 的包内一致性用例；README 的赞助与贡献者裁剪、CI 分片里的环境变量检查位置仍需每次同步手工确认。
+- 代价：插件产物二进制每次同步都会重写（zip 记录 mtime），无法再用「字节不变」判断产物是否被误改，只能靠逐条目比对与 `internal/protocol` 的包内一致性用例；README 的赞助与贡献者裁剪、CI 分片里的环境变量检查位置仍需每次同步手工确认；`bun scripts/verify-before-push.mjs` 在 `work` 上必须带 `--base origin/work`，否则基准是 `origin/main`，会把只差品牌文案的旧文件（如 `web/src/styles/globals-5.css`，上游自带的未格式化 legacy CSS）当成改动。
 - 已知上限：`bun scripts/verify-before-push.mjs` 本次没有实跑（用逐项门禁替代），首次推送 `work` 前要补跑并核对 CI；真实模型出片、收费上游调用、插件安装升级与服务器部署均未验证。
 
 ## Verification
@@ -45,4 +45,6 @@ Status: implemented
 - `cd backend && go test ./...` 全部包通过（`internal/app` 约 197 秒）；临时 PostgreSQL 容器（`127.0.0.1:55432`）与本地 `redis-server` 下，`.github/scripts/check-dependency-tests.py` 确认 5 项依赖用例全部执行并通过。
 - 三个改动的 `.yingce-plugin` 用 Python 逐条目与源码目录比对一致（各 3 个条目），`manifest.documentation` 与 `README.md + docs/interface.md` 拼接结果相等，`internal/protocol` 包用例解析通过。
 - `gofmt -l backend` 无输出；`python3 .github/scripts/check-env-docs.py` 通过（22 个 `CANVAS_*`）；`verify-feature-map.ts` 通过（63 条路由、5 个开关、218 个锚点）；决策笔记三线校验通过。
-- 未做：浏览器验收、真实模型与收费上游调用、镜像构建、服务器部署。未启用 dev server，未推送 `work` 与 tag。
+- `bun scripts/verify-before-push.mjs --base origin/work`：12 项检查全部通过（含预演台 Chrome E2E），用时约 124 秒；脚本不覆盖的支付插件双架构与 `golangci-lint` 留给 CI，依赖 PostgreSQL/Redis 的 5 项已用 `check-dependency-tests.py` 单独确认执行并通过。
+- 顺带修复上游遗留的测试超时：`web/test/cloud-agent-panel-sync.test.ts` 用 `Bun.spawnSync` 拉起 30 秒预算的子进程，但用例本身用 Bun 默认 5 秒超时，脚本并行跑时实测 4.6–5.0 秒、会随机失败；补 `60000` 毫秒用例超时，不断言内容不变。
+- 未做：浏览器验收、真实模型与收费上游调用、镜像构建、服务器部署。未启用 dev server。
