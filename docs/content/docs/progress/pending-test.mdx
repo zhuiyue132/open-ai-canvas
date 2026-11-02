@@ -4239,3 +4239,13 @@ SQLite 与 HTTP recorder 已验证；PostgreSQL 16／17、前端构建及浏览�
 - 已验证：前端类型、lint、build 和 2908 项测试通过；后端 build、3589 项测试通过，PostgreSQL / Redis 依赖用例全部执行，另有 3 项设计内跳过；插件协议用例禁用缓存重跑通过。功能地图、环境变量与决策笔记校验通过。
 - [ ] 明暗主题下复核 `/admin/user-groups`、个人记忆设置与后台记忆文件、短剧精修侧栏的投送 / 采用、技能库「按行业推荐」和 Agent 右侧停靠；这些页面未做浏览器验收。
 - [ ] 插件中心显示 xAI 与 WAN 3.0 拼车插件的意绘作者文案；真实 xAI 查询返回嵌套 `video.url` 时能展示并保存结果，拼车插件交单与分离回查可用。未调用收费上游，不以离线协议测试替代真实生成验收。
+
+## main v1.7.3.3 合并复核
+
+- 已实现：合入 main 到 `82fc5c03` 的 37 个提交（work 基线 `e45a62d4`）。README 保持二开内容边界与部署段；品牌冲突按「上游实现 + 意绘文案」重放：三个视频插件包改为按源码重新内嵌文档并重新打包，管理后台设计规范采用上游两级侧栏描述，新出现的时间线导出元数据注释改为「意绘时间线合成」。CI 保留 work 推送触发、lint 版本与依赖用例检查，只把环境变量文档检查收敛到 `rest` 分片；上游新增的 `scripts/verify-before-push.mjs` 与「推送前验证」纪律按 work 不可 rebase 的前提重写。取舍见 `.agents/notes/implemented/process/2026-11-02-upstream-sync-v1-7-3-3.md`。
+- 已验证：`bun run typecheck`、`bun run typecheck:test`、`bun run lint`、`bun run build` 通过；`bun test` 2934 项、407 个文件通过。`cd backend && go test ./...` 全部包通过（`internal/app` 约 197 秒）；PostgreSQL 容器与本地 Redis 下 5 项依赖用例经 `.github/scripts/check-dependency-tests.py` 确认全部执行并通过；三个改动的 `.yingce-plugin` 由 `internal/protocol` 用例解析通过，并逐条目与源码一致。功能地图、环境变量与决策笔记三线校验通过。
+- [ ] 浏览器验收：`/toolbox/image` 电商出品页新版（一次生成多张图片与多条视频、批次与素材选择）与提示词引用悬停预览，未做浏览器检查。
+- [ ] 浏览器验收：管理后台侧栏分组折叠与页面预取、用户调积分、渠道「全部模型」视图与 24 小时稳定性、请求明细筛选与预授权/实收拆分。
+- [ ] 浏览器验收：预演台画幅比例选择与角色人偶缩略图、短剧「表演强度 / 运镜动感 / 镜头节奏」滑杆与分步模型/技能设置，未在真实模型上跑过出片。
+- [ ] 时间线导出后的 MP4 元数据 `comment` 为「意绘时间线合成」；导出、AIGC 标识与切段时长只有离线用例。
+- [ ] `bun scripts/verify-before-push.mjs` 本次未实跑（改用逐项门禁）；首次推送 work 前按 AGENTS.md 第 8 节跑一次并核对 CI 结果。

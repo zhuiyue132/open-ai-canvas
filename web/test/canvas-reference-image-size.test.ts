@@ -109,7 +109,8 @@ describe("图生图默认跟随参考图比例", () => {
         expect(selection?.imageResolution).toBe("2k");
         const [width, height] = (selection?.size || "").split("x").map(Number);
         expect(Math.abs(width / height - 16 / 9)).toBeLessThan(0.05);
-        expect(seedream.size.values).toContain(selection?.size);
+        expect(selection?.size).toBeDefined();
+        expect(seedream.size.values).toContain(selection!.size);
     });
 
     test("无尺寸参数的模型不推断比例", () => {

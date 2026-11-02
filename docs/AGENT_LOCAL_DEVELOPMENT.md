@@ -106,7 +106,7 @@ git push origin --tags
 | 文件类别 | 典型文件 | 结算 |
 | --- | --- | --- |
 | 上游产品实现 | `web/src/**`、`backend/**`、`plugin-packages/**`、`docker-compose*.yml`、`nginx.conf`、`backend/internal/handler/openapi.yaml` | 取上游；`work` 在同区域的改动逐段重放（三方合并）。重放后仍冲突的区块按各自策略行处理 |
-| 品牌文案与插件产物 | 产品默认品牌、插件 `author`、内嵌 `documentation`、`.yingce-plugin` | 保留 `work` 的「意绘」/ `EASYDRAW` 品牌；上游插件协议修复照常吸收，产物以上游包为基准只同步品牌文案并逐条目核对源码，不全量重跑生成器；`yingce` 协议、环境变量与部署标识不改。依据见 [品牌改名](../.agents/notes/implemented/feature/2026-10-28-brand-name-yihui.md) |
+| 品牌文案与插件产物 | 产品默认品牌、插件 `author`、内嵌 `documentation`、`.yingce-plugin` | 保留 `work` 的「意绘」/ `EASYDRAW` 品牌；上游插件协议修复照常吸收。源码取上游后重放品牌，再用 `node plugin-packages/embed-documentation.mjs <包 ID>` 重新内嵌文档、按目录重新 `zip -X` 打包，并逐条目与源码比对（上游 v1.7.3.3 起打包来源由 `package-directories.mjs` 统一，重跑内嵌器已幂等，不再对已提交包做字节手术）；`yingce` 协议、环境变量与部署标识不改。依据见 [品牌改名](../.agents/notes/implemented/feature/2026-10-28-brand-name-yihui.md) 与 [v1.7.3.3 同步](../.agents/notes/implemented/process/2026-11-02-upstream-sync-v1-7-3-3.md) |
 | 根 README 的展示内容 | 赞助商、3D 预演台赞助用户、贡献者名单、共享演示账号密码 | 取 `work` 侧策略：这些区块删除，演示站只留链接；上游新增的产品介绍、能力清单与 `assets/screenshots/` 保留。依据见 [`sponsors-contributors-removal`](../.agents/notes/implemented/simplification/2026-10-15-sponsors-contributors-removal.md) |
 | 文档索引与参考文档 | `docs/index.md`、`docs/content/docs/**`、`README.md` 的「文档导航」 | 索引取 `work` 侧（只列参考类文档，上游遗产按目录描述、不逐篇链接）；参考文档正文取上游 |
 | 上游遗产（只读） | `docs/adr/`、`docs/design/`、`docs/plans/`、`docs/superpowers/specs/` | 取上游（含新增篇目）；本仓库不改写、不为它补索引链接 |

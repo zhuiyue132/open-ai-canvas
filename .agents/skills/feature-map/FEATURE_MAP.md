@@ -111,7 +111,7 @@
 ### 生图工作台
 
 - **抵达**：`/toolbox/image`；侧栏「图片生成」；`imageWorkbenchEnabled` 默认关闭。
-- **锚点**：`web/src/pages/workbench/image-workbench-page.tsx`、`web/src/pages/workbench/workbench-catalog.ts`（分类与预设）；API `web/src/services/api/workbench.ts`；后端 `backend/internal/handler/workbench.go`（`RegisterWorkbenchRoutes`）。
+- **锚点**：`web/src/pages/workbench/image-workbench-page.tsx`（`WorkbenchPage`，图片与视频共用）、`web/src/pages/workbench/workbench-composer.tsx`（提示词与参数）、`web/src/pages/workbench/workbench-batches.ts`（一次多图多视频的批次）、`web/src/pages/workbench/workbench-gallery.tsx` 与 `web/src/pages/workbench/workbench-viewer.tsx`（结果列表与预览）、`web/src/pages/workbench/workbench-presets.ts`、`web/src/pages/workbench/workbench-scene-library.tsx`、`web/src/pages/workbench/workbench-catalog.ts`（分类与预设）；API `web/src/services/api/workbench.ts`；后端 `backend/internal/handler/workbench.go`（`RegisterWorkbenchRoutes`）。
 - **验收**：`cd web && bun test test/workbench-features.test.ts test/workbench-tools.test.ts`。
 - **陷阱**：分类、预设、示例素材由管理员在 `/admin/workbench-tools` 维护。开关开着但后台没配工具时，页面只有骨架，不是渲染失败。
 
