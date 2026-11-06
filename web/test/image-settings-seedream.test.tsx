@@ -63,6 +63,7 @@ describe("ImageSettingsPanel with km-kemei-seedream", () => {
             inputTokenPriceMicrocredits: 0,
             outputTokenPriceMicrocredits: 0,
             cachedTokenPriceMicrocredits: 0,
+            cacheWriteTokenPriceMicrocredits: 0,
             priceConfigured: true,
             enabled: true,
             priceVersion: 1,

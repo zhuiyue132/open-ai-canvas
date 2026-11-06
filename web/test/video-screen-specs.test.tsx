@@ -120,6 +120,7 @@ test("selecting an AutoDL upstream writes the resolved spec into the form value"
         protocol: "autodl-comfyui",
         priceTiers: [],
         priceCurrency: "credits" as const,
+        referenceVideoBilling: false,
         enabled: true,
         capabilityConfig: defaultModelCapabilityConfig("autodl-comfyui", ""),
     };

@@ -12,7 +12,7 @@
 
 | 组 | 条目 |
 | --- | --- |
-| 无标题 | 创作 `/` · 短剧制作 `/projects` · 自由画布 `/canvas` |
+| 无标题 | 创作 `/` · 短剧制作 `/projects` · 电商 Agent `/ecommerce`（开放后）· 自由画布 `/canvas` |
 | 资源与工具 | 图片生成 `/toolbox/image` · 视频生成 `/toolbox/video` · 技能 `/skills` · 插件 `/plugins` |
 | 资产与历史 | 资产 `/assets` · 创作历史 `/tasks` |
 
@@ -36,7 +36,9 @@
 | --- | --- | --- | --- |
 | `imageWorkbenchEnabled` | **false** | `/toolbox/image` 显示「生图暂未开放」 | 侧栏图片生成 |
 | `videoWorkbenchEnabled` | **false** | `/toolbox/video` 显示「视频暂未开放」 | 侧栏视频生成 |
-| `frontendModelsEnabled` | **false** | `/admin/models` 显示「前台模型暂未开放」，按钮回管理后台首页 | 后台模型页 |
+| `ecommerceEnabled` | **false** | 隐藏侧栏电商入口，深链仍能查看历史方案和作品但不能发起创作 | 电商 Agent |
+| `ecommerceVideoEnabled` | **false** | 隐藏商品视频入口；还需同时开启 `videoWorkbenchEnabled` | 电商作品「做成视频」 |
+| `frontendModelsEnabled` | **false** | 用户端不提供前台系统模型；`/admin/models` 仍可进入配置 | 用户端模型选择 |
 | `shortDramaEnabled` | true | `/projects` 及全部子路由显示「短剧创作暂未开放」 | 侧栏短剧制作、⌘K |
 | `taskCenterEnabled` | true | `/tasks` 显示「任务中心暂未开放」 | 侧栏创作历史、⌘K |
 | `pluginCenterEnabled` | true | `/plugins`、`/plugins/eagle` 显示「插件中心暂未开放」 | 侧栏插件 |
@@ -76,6 +78,13 @@
 - **验收**：`cd web && bun test test/canvas-agent-focus.test.ts test/agent-canvas-sync.test.ts test/agent-approval-presentation.test.ts`。
 - **陷阱**：设置 `YINGCE_AGENT_URL` 后只调 `yingce-agent` 容器，不设置才在进程内起 Node。远程失败不会回退到内嵌进程——排查时先确认走的是哪条路，别在同一步上怀疑 Agent 执行两遍。
 
+### 画布姿势库
+
+- **抵达**：画布工具条或右键菜单打开姿势库弹窗；管理员从 `/admin/pose-library` 导入、同步素材，无独立用户端路由。
+- **锚点**：`web/src/components/canvas/canvas-pose-library-modal.tsx`、`web/src/services/api/pose-library.ts`、`backend/internal/handler/pose_library.go`、`backend/internal/poselibrary/`。
+- **验收**：`cd backend && go test ./internal/poselibrary ./internal/handler`；真实画布选择姿势后应插入图片节点。
+- **陷阱**：仓库和发布镜像不携带姿势图片；先在后台导入元数据并完成同步，空目录不等于前端弹窗故障。
+
 ## 3. 短剧制作
 
 ### 项目列表
@@ -107,6 +116,13 @@
 - **陷阱**：投送到画布不等于采用；采用只接受服务端资源，正在生成或仅有外部链接的节点不能采用。
 
 ## 4. 资源与工具
+
+### 电商 Agent
+
+- **抵达**：登录后打开 `/ecommerce`；侧栏入口由 `ecommerceEnabled` 控制，商品视频还依赖 `ecommerceVideoEnabled` 与 `videoWorkbenchEnabled`。
+- **锚点**：`web/src/pages/ecommerce/index.tsx`、`web/src/services/ecommerce-session.ts`、`web/src/services/api/ecommerce.ts`、`backend/internal/handler/ecommerce.go`、`backend/internal/app/ecommerce_agent_workbench.go`。
+- **验收**：`cd web && bun test test/ecommerce-session.test.ts test/ecommerce-page-recovery.test.tsx test/ecommerce-flow.test.ts`；`cd backend && go test ./internal/handler -run Ecommerce`。
+- **陷阱**：开关关闭不删除历史项目；AI 创作另需管理员配置阶段模型，未配置时生成按钮给出原因。页面恢复、收费提交与商品记忆均按账号和项目隔离。
 
 ### 生图工作台
 
@@ -161,10 +177,17 @@
 
 ### 设置
 
-- **抵达**：`/settings`；用户卡片「账户与设置」或 ⌘K「设置」。支持 `?section=` 深链（`web/src/pages/settings/index.tsx` 的 `configSections`），取值 `profile`、`channels`、`runninghub`、`models`、`preferences`、`prompts`、`agent-memory`、`storage`、`diagnostics`；非法值回落到 `profile`。
+- **抵达**：`/settings`；用户卡片「账户与设置」或 ⌘K「设置」。支持 `?section=` 深链（`web/src/pages/settings/index.tsx` 的 `configSections`），取值 `profile`、`channels`、`runninghub`、`models`、`preferences`、`prompts`、`agent-memory`、`storage`、`ark-assets`、`feedbacks`、`diagnostics`；非法值回落到 `profile`。
 - **锚点**：`web/src/pages/settings/index.tsx` 分发分区；`web/src/pages/settings/profile-pane.tsx` + `web/src/pages/settings/profile-validation.ts`（头像、密码、邮箱）；`web/src/pages/settings/agent-memory-pane.tsx` + `web/src/services/api/agent-memory.ts`（记忆文件、修改历史与撤销）；`web/src/services/api/profile.ts`；后端 `backend/internal/handler/auth_profile.go`、`backend/internal/handler/custom_proxy.go`（自定义渠道中转）、`backend/internal/handler/agent_memory_document.go`。
 - **验收**：`cd web && bun test test/password-reset.test.ts`、`cd backend && go test ./internal/app -run Memory`；改密码和换邮箱成功后退出所有会话；`?section=agent-memory` 显示长期记忆文件与历史，Agent 修改可按记录模式审核或撤销。
 - **陷阱**：侧栏没有设置入口。`customChannelsEnabled` 关闭只隐藏「个人渠道」，`?section=channels` 回落到 `models`；RunningHub 入口要求 `runtimeStatuses[RUNNINGHUB_PLUGIN_ID] === "enabled"`，与个人渠道开关独立，插件未启用时 `?section=runninghub` 回落到 `profile`。
+
+### 方舟素材库与真人认证
+
+- **抵达**：用户设置 `?section=ark-assets`；平台素材组、审核与授权在 `/admin/settings/ark-private-assets`；手机 H5 认证回跳 `/ark-portrait/result`，该结果页不要求登录。
+- **锚点**：`web/src/pages/settings/ark-assets-pane.tsx`、`web/src/pages/ark-portrait-result.tsx`、`web/src/services/api/ark-portraits.ts`、`backend/internal/handler/ark_portraits.go`、`backend/internal/app/ark_portraits.go`。
+- **验收**：`cd backend && go test ./internal/app -run Ark`；公开结果页按 `status` 展示状态，真实结果以服务端会话为准。
+- **陷阱**：用户端入口由方舟配置的 `enabled` 决定，不是 `FeatureAvailability` 开关；回跳查询参数不能作为认证成功或素材授权凭证。
 
 ### 钱包（全局浮层，不是页面）
 
@@ -200,9 +223,13 @@
 | 用户反馈 | `/admin/feedbacks` | `web/src/pages/admin/feedbacks/feedbacks-page.tsx` |
 | 推广管理 | `/admin/referral` | `web/src/pages/admin/referral/referral-admin-page.tsx` |
 | 渠道 | `/admin/channels` | `web/src/pages/admin/channels/channels-page.tsx` |
-| 前台模型 | `/admin/models` | `web/src/pages/admin/logical-models/logical-models-page.tsx`（`frontendModelsEnabled`） |
+| 前台模型 | `/admin/models` | `web/src/pages/admin/logical-models/logical-models-page.tsx`（后台配置不受 `frontendModelsEnabled` 阻挡） |
+| 电商 Agent 配置 | `/admin/ecommerce/agent` | `web/src/pages/admin/ecommerce-agent-config-page.tsx`；阶段模型、提示词与创作助手策略 |
+| 电商知识与技能 | `/admin/ecommerce/library`、`/admin/ecommerce/library/skills`、`/admin/ecommerce/library/categories` | `web/src/pages/admin/ecommerce-management-page.tsx`；验收 `cd web && bun test test/ecommerce-admin-models.test.ts test/ecommerce-skills.test.ts` |
 | 插件 | `/admin/plugins` | `web/src/pages/admin/plugins/plugins-page.tsx` |
 | 工作台工具 | `/admin/workbench-tools` | `web/src/pages/admin/workbench-tools/workbench-tools-page.tsx` |
+| 姿势库 | `/admin/pose-library` | `web/src/pages/admin/pose-library/pose-library-page.tsx`；导入元数据、同步图片与单张管理 |
+| 技能管理 | `/admin/skills`、`/admin/skills/:skillId/edit` | `web/src/pages/admin/skills/skills-page.tsx`、`web/src/pages/admin/skills/admin-skill-workbench-page.tsx`；后端 `backend/internal/handler/admin_skill_routes.go` |
 | 技能策展 | `/admin/skill-curation` | `web/src/pages/admin/skill-curation-page.tsx` |
 | 支付 | `/admin/payments` | `web/src/pages/admin/payments/payments-page.tsx` |
 | 提示词模板 | `/admin/prompt-templates` | `web/src/pages/admin/storyboard-prompts/storyboard-prompts-page.tsx` |
@@ -220,13 +247,15 @@
 | 访问控制 | `/admin/settings/access` | `web/src/pages/admin/admin-route-pages.tsx`（`AccessSettingsPage`） |
 | 邮件 | `/admin/settings/email` | `web/src/pages/admin/admin-route-pages.tsx`（`EmailSettingsPage`） |
 | 存储设置 | `/admin/settings/storage` | `web/src/pages/admin/settings/storage-settings-page.tsx` |
-| Ark 私有素材 | `/admin/settings/ark-private-assets` | `web/src/pages/admin/settings/ark-private-assets-settings-page.tsx` |
+| 方舟素材库 | `/admin/settings/ark-private-assets` | `web/src/pages/admin/settings/ark-private-assets-settings-page.tsx` |
 | 响应拦截 | `/admin/settings/response-interception` | `web/src/pages/admin/settings/response-interception-settings-page.tsx` |
 | 第三方 | `/admin/settings/third-party` | `web/src/pages/admin/settings/libtv-settings-page.tsx` |
 | 系统更新 | `/admin/settings/system-update` | `web/src/pages/admin/settings/system-update-page.tsx` |
 | 系统性能 | `/admin/settings/system-performance` | `web/src/pages/admin/settings/system-performance-page.tsx` |
 
 跳转别名（改动菜单时容易误判为缺页）：`/admin/settings` → `runtime-policy`、`/admin/settings/concurrency` → `runtime-policy`、`/admin/settings/libtv` → `third-party`、`/admin/storyboard-prompts` → `prompt-templates`。
+
+电商旧入口同样只做跳转：`/admin/ecommerce` → `/admin/ecommerce/agent`；`/admin/ecommerce-knowledge` → `/admin/ecommerce/library`；`/admin/ecommerce/skills`、`/admin/ecommerce-skills` → `/admin/ecommerce/library/skills`；`/admin/ecommerce/categories`、`/admin/ecommerce-categories` → `/admin/ecommerce/library/categories`。
 
 ## 7. 公开面（未登录可达）
 

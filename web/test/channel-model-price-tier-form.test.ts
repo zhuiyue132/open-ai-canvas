@@ -61,6 +61,7 @@ describe("channel model price tier defaults", () => {
             inputTokenPriceMicrocredits: 0,
             outputTokenPriceMicrocredits: 0,
             cachedTokenPriceMicrocredits: 0,
+            cacheWriteTokenPriceMicrocredits: 0,
             priceConfigured: true,
             enabled: true,
             priceVersion: 1,

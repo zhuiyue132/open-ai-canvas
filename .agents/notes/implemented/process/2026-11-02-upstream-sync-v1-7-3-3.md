@@ -46,5 +46,5 @@ Status: implemented
 - 三个改动的 `.yingce-plugin` 用 Python 逐条目与源码目录比对一致（各 3 个条目），`manifest.documentation` 与 `README.md + docs/interface.md` 拼接结果相等，`internal/protocol` 包用例解析通过。
 - `gofmt -l backend` 无输出；`python3 .github/scripts/check-env-docs.py` 通过（22 个 `CANVAS_*`）；`verify-feature-map.ts` 通过（63 条路由、5 个开关、218 个锚点）；决策笔记三线校验通过。
 - `bun scripts/verify-before-push.mjs --base origin/work`：12 项检查全部通过（含预演台 Chrome E2E），用时约 124 秒；脚本不覆盖的支付插件双架构与 `golangci-lint` 留给 CI，依赖 PostgreSQL/Redis 的 5 项已用 `check-dependency-tests.py` 单独确认执行并通过。
-- 顺带修复上游遗留的测试超时：`web/test/cloud-agent-panel-sync.test.ts` 用 `Bun.spawnSync` 拉起 30 秒预算的子进程，但用例本身用 Bun 默认 5 秒超时，脚本并行跑时实测 4.6–5.0 秒、会随机失败；补 `60000` 毫秒用例超时，不断言内容不变。
+- 顺带修复上游遗留的测试超时：`web/test/cloud-agent-panel-sync.test.ts` 用 `Bun.spawnSync` 拉起 30 秒预算的子进程，但用例本身用 Bun 默认 5 秒超时，脚本并行跑时实测 4.6–5.0 秒、会随机失败；补 `60000` 毫秒用例超时，不改变断言内容。后续上游也把父用例超时修为 `35000` 毫秒，覆盖同一处默认 5 秒的问题；[v1.8.1 同步](./2026-11-06-upstream-sync-v1-8-1.md) 采用上游值，不再单独保留该补丁。
 - 未做：浏览器验收、真实模型与收费上游调用、镜像构建、服务器部署。未启用 dev server。

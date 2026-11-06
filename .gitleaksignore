@@ -1,0 +1,3 @@
+# Confirmed false positive: a public pose identifier in the upstream JSON example, not a credential.
+# Exact commit/path/rule/line only; future findings remain subject to the full scan.
+948b1ba7049d5918e68ddb9a02fcfac9ed5c6ee1:docs/content/docs/canvas/pose-library.mdx:generic-api-key:105
