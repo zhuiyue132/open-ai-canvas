@@ -52,4 +52,6 @@ Status: implemented
 - 12 个插件包各 3 个条目与源码目录逐条目一致；旧品牌名作为独立品牌词在插件源码与产物中命中 0。
 - `bun scripts/verify-before-push.mjs`：12 项检查中 11 项通过（web:format 除外），web:e2e、web:test、后端分片与 gofmt 全绿。`web:format` 失败与本批改动无关，见下条。
 - 已知上游缺陷（本次未修）：`web/src/styles/globals-5.css` 在第 91 行多一个闭合花括号（`885 {` / `886 }`），该文件在 `origin/main`、work 基线与合并结果里逐字节相同，属上游遗留。`verify-before-push.mjs` 以 `origin/main` 为基准，因此会把 work 已存在差异的所有文件都纳入格式检查并在这里失败；CI 的 `check-changed-formatting.mjs` 以推送前的基数为基准，本次推送没有改动该文件，不会纳入检查。**不要顺手修这一行**：`check-changed-formatting` 会对基线版本调用 `prettier.check`，基线文件无法解析会直接抛错，改动该文件的推送反而会红。修整时要把「清掉多余花括号」和「同时保证基线可解析」放在同一次提交里，或先把整文件按 Prettier 重排。
+- 推送后 CI `Quality checks` 在 `Vulnerability and secret scan` 失败：`govulncheck` 报 `GO-2026-6859`（`net/http`，`Found in go1.26.10`、`Fixed in go1.26.11`）。该作业原先没有 `setup-go`，用的是 runner 自带的最新补丁版，标准库公告一发布就在零代码改动下变红。已按「工具链与安全依赖」类结算：`backend/go.mod` 的 `go` 指令升到 `1.26.11`、`.tool-versions` 与 `AGENTS.md` 同步，并给该作业补 `actions/setup-go@v5`（`go-version-file: backend/go.mod`），让扫描器始终跟随声明版本而不是 runner 漂移；镜像继续用浮动的 `golang:1.26-alpine`，需要时由 `GOTOOLCHAIN` 拉取补丁版。
+- 升级后本地 `go run golang.org/x/vuln/cmd/govulncheck@latest ./...` 输出 `No vulnerabilities found`（0 个可达漏洞），`go build ./...`、`go test ./internal/protocol ./internal/auth ./internal/handler` 与 `gofmt -l` 通过。
 - 未做：本地 PostgreSQL / Redis 依赖用例、真实浏览器验收。

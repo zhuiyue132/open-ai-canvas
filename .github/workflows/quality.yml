@@ -234,6 +234,12 @@ jobs:
       # 依赖里的已披露漏洞原本无人工检查（只有 dependabot 提 PR）。这里只拦**可达**漏洞：
       # govulncheck 在 Go 1.26 + golang.org/x/net v0.60.0 + x/text v0.42.0 下输出
       # "No vulnerabilities found"，此前 go1.25 时代的 5 个可达漏洞由那次升级消除。
+      # 扫描器必须跟随 backend/go.mod 的 Go 版本：不装固定版本时会用 runner 自带的
+      # 最新补丁版，标准库公告一发布就在没有任何代码改动的情况下把这一步变红。
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
       - name: Scan Go dependencies for reachable vulnerabilities
         working-directory: backend
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
