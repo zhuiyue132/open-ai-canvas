@@ -114,7 +114,7 @@ git push origin --tags
 | 上游遗产（只读） | `docs/adr/`、`docs/design/`、`docs/plans/`、`docs/superpowers/specs/` | 取上游（含新增篇目）；本仓库不改写、不为它补索引链接 |
 | 二开约定与工作流 | `AGENTS.md`、`.agents/**`、`docs/AGENT_LOCAL_DEVELOPMENT.md`、`README.md` 的部署与验证段、`.github/workflows/`（`quality`、`publish-fork-images`、`verify-*`）、`scripts/fork-deploy-image.sh` | 取 `work` 侧；上游在 `.github/workflows/` 的新增与修改按需吸收，但不得启用上游 `publish-images.yml`（每次同步前手工复查，见本节开头） |
 | 版本身份 | `VERSION`、`CHANGELOG.md`、上游 `v*` tag | 取上游（发布身份跟随上游版本号）；二开 tag 用日期版本号，见第 6 节 |
-| 测试与夹具 | `web/test/**`、`backend/**/*_test.go`、`web/src/**/*.test.ts` | 实现对齐后取上游版本；`work` 侧的类型修复不抢上游内容，冲突解决后重跑门禁再补 |
+| 测试与夹具 | `web/test/**`、`backend/**/*_test.go`、`web/src/**/*.test.ts` | 实现对齐后取上游版本；`work` 侧的类型修复不抢上游内容，冲突解决后重跑门禁再补。整目录门禁（`bun run typecheck:test`）在上游不跑，每次同步都会带进测试类型错误：同类缺口集中到 `web/test/types/` 的声明（如 happy-dom 事件派发），其余按真实合同补齐夹具字段，不放宽或排除门禁；`tsconfig.test.json` 开了 `incremental`，本地判断真实错误数前先删 `tsconfig.test.tsbuildinfo`。依据见 [v1.8.4.1 同步](../.agents/notes/implemented/process/2026-11-11-upstream-sync-v1-8-4.md) |
 | 上游已删除的模块 | 旧 `web/src/pages/projects/detail/`、随其删除的测试与文档锚点 | 接受上游删除，不为旧路径写兼容层，也不把旧测试移植到新模块；新模块的行为面由上游用例加同步时补的专项覆盖 |
 | 上游缺陷的二开修复 | `.agents/notes/implemented/bug-fix/` 里记录的上游 bug 修复 | 保留 `work` 修复；若上游已自行修好同一处，取上游实现并在笔记里标注被上游覆盖 |
 

@@ -11,7 +11,7 @@ export function mountNodeDragHarness(host: HTMLElement, options: { locked?: bool
         const [nodes, setNodes] = useState<CanvasNodeData[]>([
             {
                 id: "drag-test",
-                type: CanvasNodeType.Html,
+                type: CanvasNodeType.Text,
                 title: "分镜表测试",
                 position: { x: 100, y: 100 },
                 width: 800,
@@ -49,12 +49,12 @@ export function mountNodeDragHarness(host: HTMLElement, options: { locked?: bool
                 <CanvasNode
                     data={{ ...nodes[0], metadata: { ...nodes[0].metadata, locked: options.locked } }}
                     readOnly={options.readOnly}
+                    showImageInfo={false}
                     scale={1}
                     isSelected={selected.has(nodes[0].id)}
                     isRelated={false}
                     isFocusRelated={false}
                     isConnectionTarget={false}
-                    showImageInfo={false}
                     dragOffset={ctrl.dragPreview ?? undefined}
                     onMouseDown={ctrl.handleNodeMouseDown}
                     onHoverStart={noop}

@@ -17,6 +17,7 @@
 - [HTTP API 合同](content/docs/backend/http-api.mdx)：响应信封、错误码、鉴权与 SSE。
 - [后端数据库](content/docs/backend/backend-database.mdx)：表结构、枚举与迁移约定。
 - [NewAPI 渠道（第二版）](content/docs/backend/newapi-channel-2.mdx)
+- [渠道、模板与批量配置](content/docs/backend/channel-configuration.mdx)：按网站管理 Key 分组、复用能力与积分模板。
 - [视频 Token 计价](content/docs/backend/video-token-billing.mdx)
 - [画布数据同步](content/docs/backend/canvas-operations-sync.mdx)
 
@@ -40,9 +41,9 @@
 
 以下目录随上游同步保留，本仓库不新增、不作为决策依据；需要其中的事实时按路径引用：
 
-- `docs/adr/`：上游决策记录 10 篇
-- `docs/design/`：上游设计沉淀 21 篇（含 `ui-review-evidence/` 截图与控制台日志）
-- `docs/plans/`：上游实施计划 8 篇
+- `docs/adr/`：上游决策记录 10 篇；ADR-0001～0007 的站内手工剪辑方案已随产品减负退场，保留为历史决策，不再据此新增剪辑能力
+- `docs/design/`：上游设计沉淀 22 篇（含 `ui-review-evidence/` 截图与控制台日志）
+- `docs/plans/`：上游实施计划 11 篇
 - `docs/superpowers/specs/`：上游规格 2 篇
 
 ## 文档分发

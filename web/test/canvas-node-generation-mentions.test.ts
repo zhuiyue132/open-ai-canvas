@@ -129,7 +129,7 @@ describe("canvas node generation position mentions", () => {
         const character = node("character", CanvasNodeType.Image, "data:image/png;base64,a");
         const wig = node("wig", CanvasNodeType.Image, "data:image/png;base64,b");
         const voice = node("voice", CanvasNodeType.Audio, "data:audio/mpeg;base64,c");
-        const note = node("note", CanvasNodeType.Markdown, "导演方案");
+        const note = node("note", CanvasNodeType.Text, "导演方案");
         const prompt = "一镜到底\n\n【资产参考】\n人物：@图片1\n假发：@图片2\n声音：@音频1";
         // 顶层引用字段现为 referenceAssetNodeIds；本用例的编号只由连接与提示词决定，旧字段名（referenceNodeIds）已废弃。
         target.metadata = { composerContent: prompt, prompt, referenceAssetNodeIds: [character.id, voice.id, wig.id] };

@@ -1,7 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
+import { buildNodeConfig, videoConfigPatch } from "../src/components/canvas/canvas-node-prompt-config";
+import { applyNodeConfigPatch } from "../src/lib/canvas/canvas-project-domain";
+import { buildGenerationConfig } from "../src/lib/canvas/canvas-project-generation";
 import { prepareBackendGenerationTask } from "../src/services/api/generation-task";
 import { createModelChannel, defaultConfig, encodeChannelModel } from "../src/stores/use-config-store";
+import { CanvasNodeType, type CanvasNodeData } from "../src/types/canvas";
 
 function agentPlanImageConfig() {
     const channel = createModelChannel({
@@ -50,6 +54,26 @@ function agentPlanVideoConfig() {
 }
 
 describe("generation-task ark asset references", () => {
+    test.each([
+        ["false", "true"],
+        ["true", "false"],
+    ])("canvas video panel and task both use the saved sync value %s", async (nodeValue, globalValue) => {
+        const config = { ...agentPlanVideoConfig(), videoArkPrivateAssetUpload: globalValue };
+        const node: CanvasNodeData = { id: "video-1", type: CanvasNodeType.Video, title: "视频", position: { x: 0, y: 0 }, width: 320, height: 180 };
+        const requirements = { capability: "video" } as const;
+        expect(buildNodeConfig(config, node, "video", requirements).videoArkPrivateAssetUpload).toBe(globalValue);
+
+        const edited = applyNodeConfigPatch(node, videoConfigPatch("videoArkPrivateAssetUpload", nodeValue));
+        expect(buildNodeConfig(config, edited, "video", requirements).videoArkPrivateAssetUpload).toBe(nodeValue);
+
+        const task = await prepareBackendGenerationTask({
+            mode: "video",
+            prompt: "animate this",
+            config: buildGenerationConfig(config, edited, "video", requirements),
+        });
+        expect(task.input).toMatchObject({ config: { videoArkPrivateAssetUpload: nodeValue } });
+    });
+
     test("agent plan Seedream image mode does not rewrite references to asset://", async () => {
         const input = await prepareBackendGenerationTask({
             mode: "image",
@@ -90,8 +114,10 @@ describe("generation-task ark asset references", () => {
                 },
             ],
         });
-        const images = (input.input as { referenceImages?: Array<{ url?: string }> }).referenceImages || [];
+        const images = (input.input as { referenceImages?: Array<{ url?: string; sourceResourceId?: string; storageKey?: string }> }).referenceImages || [];
         expect(images).toHaveLength(1);
         expect(images[0]?.url).toBe("asset://asset-already-synced");
+        expect(images[0]?.sourceResourceId).toBe("res-1");
+        expect(images[0]?.storageKey).toBeUndefined();
     });
 });

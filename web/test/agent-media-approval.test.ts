@@ -127,3 +127,27 @@ describe("approval target already generating on the canvas", () => {
         expect(AGENT_APPROVAL_SUPERSEDED_BY_NODE).toBe("superseded_by_node");
     });
 });
+
+describe("batch generation approval settings", () => {
+    it("shows model settings for image batches in live events and restored approvals", () => {
+        const args = { mode: "image", channelId: "platform", channelModelKey: "image-model", size: "1:1", quality: "high", items: [{ nodeId: "batch-node", prompt: "第一行" }] };
+        const live = agentImageApproval({ toolName: "generate_media_batch", arguments: args });
+        const restored = agentImageApproval({ call: { function: { name: "generate_media_batch", arguments: JSON.stringify(args) } } });
+        expect(live).not.toBeNull();
+        expect(live).toEqual(restored);
+        expect(live?.channelModelKey).toBe("image-model");
+        expect(agentMediaSettings(live!)).not.toHaveProperty("items");
+        expect(agentApprovalMatchesSettings(args, agentMediaSettings(live!))).toBe(true);
+        expect(agentApprovalMatchesSettings(args, { ...agentMediaSettings(live!), channelModelKey: "other" })).toBe(false);
+    });
+    it("reads batch video defaults without requiring a shared prompt", () => {
+        const result = agentVideoApproval({ toolName: "generate_media_batch", arguments: { mode: "video", logicalModelId: "video-model", durationSeconds: 8, items: [{ nodeId: "a" }, { nodeId: "b" }] } });
+        expect(result?.logicalModelId).toBe("video-model");
+        expect(result?.durationSeconds).toBe(8);
+        expect(result?.size).toBe("");
+    });
+    it("does not offer media settings for empty or non-image/video batches", () => {
+        expect(agentImageApproval({ toolName: "generate_media_batch", arguments: { mode: "image", items: [] } })).toBeNull();
+        expect(agentVideoApproval({ toolName: "generate_media_batch", arguments: { mode: "audio", items: [{ nodeId: "a" }] } })).toBeNull();
+    });
+});

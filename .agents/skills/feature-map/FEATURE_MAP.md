@@ -149,7 +149,7 @@
 
 - **抵达**：`/assets`，页头「素材库」，右上可切「回收站」；侧栏「资产」。
 - **锚点**：`web/src/pages/assets/index.tsx`；状态 `web/src/stores/use-asset-store.ts`；API `web/src/services/api/resources.ts`；后端 `backend/internal/handler/resource_delivery.go`、`backend/internal/handler/resource_upload_session.go`、`backend/internal/handler/project_asset_routes.go`、`backend/internal/canvas/user_asset_document.go`（SPA 合同校验）。
-- **验收**：`cd web && bun test test/asset-ingest.test.ts test/asset-batch-delete.test.ts test/assets-collection-layout.test.ts`。
+- **验收**：`cd web && bun test test/asset-batch-delete.test.ts test/assets-collection-layout.test.ts test/asset-remote-sync.test.ts`。
 - **陷阱**：删除先查项目、画布、任务引用；有引用会保留并返回来源，物理删除失败不得删记录。断言「删掉了」之前先确认没有引用。
 
 ### 技能库
@@ -163,7 +163,7 @@
 
 - **抵达**：`/plugins`，页头「插件中心」；侧栏「插件」；`pluginCenterEnabled` 控制。
 - **锚点**：`web/src/pages/plugins/index.tsx`；API `web/src/services/api/plugins.ts`、`web/src/services/api/plugin-catalog.ts`；后端 `backend/internal/handler/plugin.go`（`RegisterPluginRoutes`）；插件包在 `plugin-packages/`。
-- **验收**：`cd web && bun test test/plugin-upload-merge.test.ts test/plugin-state-switch.test.ts test/plugin-permission-check.test.ts`。
+- **验收**：`cd web && bun test test/plugin-upload-merge.test.ts test/plugin-state-switch.test.ts`。
 - **陷阱**：`systemPluginsVisibleToUsers` 只控制用户端可见性，系统插件仍在运行；用户端列表为空不等于插件没装。
 
 ### Eagle 素材库
@@ -220,6 +220,8 @@
 | 用户 | `/admin/users` | `web/src/pages/admin/users/users-page.tsx` |
 | 用户分组 | `/admin/user-groups` | `web/src/pages/admin/user-groups/user-groups-page.tsx`；API `web/src/services/api/user-groups.ts`；后端 `backend/internal/app/user_groups.go`；验收 `cd backend && go test ./internal/app -run UserGroup` |
 | 用户登录日志 | `/admin/login-logs` | `web/src/pages/admin/login-logs/login-logs-page.tsx` |
+| 邮件发送日志 | `/admin/email-logs` | `web/src/pages/admin/email-logs/email-logs-page.tsx`；后端 `backend/internal/handler/email_routes.go` |
+| 访问统计 | `/admin/traffic` | `web/src/pages/admin/traffic/traffic-page.tsx`、`web/src/pages/admin/traffic/traffic-operations.tsx`；采集与 API `web/src/services/api/site-traffic.ts`；后端 `backend/internal/app/site_traffic*.go`（Schema 99 事件表）；验收 `cd web && bun test test/site-traffic.test.ts test/site-traffic-api.test.ts test/site-traffic-admin.test.tsx`、`cd backend && go test ./internal/app -run SiteTraffic` |
 | 用户反馈 | `/admin/feedbacks` | `web/src/pages/admin/feedbacks/feedbacks-page.tsx` |
 | 推广管理 | `/admin/referral` | `web/src/pages/admin/referral/referral-admin-page.tsx` |
 | 渠道 | `/admin/channels` | `web/src/pages/admin/channels/channels-page.tsx` |
